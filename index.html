@@ -15,127 +15,115 @@
     html,
     body {
       margin: 0;
-      padding: 0;
-
       width: 100%;
       height: 100%;
-
       overflow: hidden;
-
       background: #000;
-
-      touch-action: none;
-      user-select: none;
     }
 
     body {
       position: fixed;
       inset: 0;
+      touch-action: none;
     }
-
-    /* Full-screen fluid area */
 
     #scene {
-      position: absolute;
+      position: fixed;
       inset: 0;
-
-      width: 100vw;
-      height: 100vh;
-
       overflow: hidden;
-
       background:
         radial-gradient(
-          circle at center,
-          #030914 0%,
-          #000 65%
+          circle at 50% 50%,
+          #020711 0%,
+          #000 70%
         );
     }
 
+    /* Large atmospheric glow */
 
-    /* Fluid blobs */
-
-    .blob {
+    #ambient {
       position: absolute;
-
       left: 50%;
       top: 50%;
 
-      width: min(65vw, 430px);
-      height: min(65vw, 430px);
-
-      margin-left: calc(min(65vw, 430px) / -2);
-      margin-top: calc(min(65vw, 430px) / -2);
-
-      border-radius: 50%;
-
-      background:
-        radial-gradient(
-          circle at 34% 27%,
-          #ffffff 0%,
-          #d8faff 6%,
-          #79e5ff 17%,
-          #168cff 38%,
-          #0047ff 58%,
-          rgba(0, 71, 255, 0) 78%
-        );
-
-      filter: blur(20px);
-
-      will-change: transform;
-
-      pointer-events: none;
-    }
-
-    .blob:nth-child(2) {
-      width: min(58vw, 380px);
-      height: min(58vw, 380px);
-
-      margin-left: calc(min(58vw, 380px) / -2);
-      margin-top: calc(min(58vw, 380px) / -2);
-
-      opacity: 0.65;
-
-      filter: blur(28px);
-    }
-
-    .blob:nth-child(3) {
-      width: min(48vw, 320px);
-      height: min(48vw, 320px);
-
-      margin-left: calc(min(48vw, 320px) / -2);
-      margin-top: calc(min(48vw, 320px) / -2);
-
-      opacity: 0.42;
-
-      filter: blur(35px);
-    }
-
-
-    /* Soft glow around the fluid */
-
-    #glow {
-      position: absolute;
-
-      left: 50%;
-      top: 50%;
-
-      width: min(75vw, 500px);
-      height: min(75vw, 500px);
+      width: 70vmin;
+      height: 70vmin;
 
       transform: translate(-50%, -50%);
 
       border-radius: 50%;
 
-      background: rgba(0, 90, 255, 0.16);
+      background: rgba(0, 80, 255, 0.15);
 
-      filter: blur(80px);
+      filter: blur(100px);
 
       pointer-events: none;
     }
 
+    /* The actual fluid */
 
-    /* Intro overlay */
+    #fluid {
+      position: absolute;
+
+      left: 50%;
+      top: 50%;
+
+      width: min(62vmin, 420px);
+      height: min(62vmin, 420px);
+
+      transform: translate(-50%, -50%);
+
+      border-radius: 48% 52% 50% 50% / 52% 48% 52% 48%;
+
+      background:
+        radial-gradient(
+          circle at 34% 27%,
+          #ffffff 0%,
+          #e5fbff 5%,
+          #a4efff 13%,
+          #4dd3ff 25%,
+          #168cff 44%,
+          #0047ff 62%,
+          #002baf 74%,
+          rgba(0, 35, 160, 0) 82%
+        );
+
+      filter: blur(8px);
+
+      will-change: transform, border-radius;
+
+      box-shadow:
+        0 0 80px rgba(0, 90, 255, 0.35);
+    }
+
+    /* Soft liquid aura */
+
+    #aura {
+      position: absolute;
+
+      left: 50%;
+      top: 50%;
+
+      width: min(75vmin, 500px);
+      height: min(75vmin, 500px);
+
+      transform: translate(-50%, -50%);
+
+      border-radius: 50%;
+
+      background:
+        radial-gradient(
+          circle,
+          rgba(0, 110, 255, 0.16),
+          transparent 68%
+        );
+
+      filter: blur(45px);
+
+      pointer-events: none;
+    }
+
+    /* Intro */
 
     #intro {
       position: fixed;
@@ -144,23 +132,20 @@
       z-index: 20;
 
       display: flex;
-
       flex-direction: column;
-
       align-items: center;
-
       justify-content: center;
 
-      gap: 18px;
+      padding: 30px;
 
-      background: rgba(0, 0, 0, 0.72);
+      background: rgba(0, 0, 0, 0.76);
 
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
 
       transition:
-        opacity 0.7s ease,
-        visibility 0.7s ease;
+        opacity 0.8s ease,
+        visibility 0.8s ease;
     }
 
     #intro.hidden {
@@ -168,7 +153,6 @@
       visibility: hidden;
       pointer-events: none;
     }
-
 
     #title {
       color: white;
@@ -179,16 +163,18 @@
         "SF Pro Display",
         sans-serif;
 
-      font-size: 28px;
-
+      font-size: 30px;
       font-weight: 500;
 
-      letter-spacing: -0.5px;
+      letter-spacing: -0.8px;
     }
 
-
     #description {
-      color: rgba(255,255,255,0.55);
+      margin-top: 12px;
+
+      max-width: 270px;
+
+      color: rgba(255,255,255,0.5);
 
       font-family:
         -apple-system,
@@ -197,57 +183,38 @@
 
       font-size: 14px;
 
-      text-align: center;
-
       line-height: 1.5;
 
-      max-width: 260px;
+      text-align: center;
     }
 
-
     #motionButton {
-      margin-top: 8px;
+      margin-top: 24px;
 
-      padding: 14px 26px;
+      padding: 14px 25px;
 
-      border: none;
-
+      border: 0;
       border-radius: 30px;
 
       background: white;
-
       color: black;
+
+      font-size: 15px;
+      font-weight: 500;
 
       font-family:
         -apple-system,
         BlinkMacSystemFont,
         sans-serif;
-
-      font-size: 15px;
-
-      font-weight: 500;
-
-      cursor: pointer;
-
-      box-shadow:
-        0 10px 40px rgba(255,255,255,0.12);
     }
-
-    #motionButton:active {
-      transform: scale(0.96);
-    }
-
-
-    /* Bottom instruction */
 
     #hint {
       position: fixed;
 
       z-index: 10;
 
-      bottom: calc(30px + env(safe-area-inset-bottom));
-
       left: 50%;
+      bottom: calc(32px + env(safe-area-inset-bottom));
 
       transform: translateX(-50%);
 
@@ -260,40 +227,31 @@
 
       font-size: 13px;
 
-      letter-spacing: 0.2px;
+      white-space: nowrap;
 
       opacity: 0;
 
       transition: opacity 1s ease;
-
-      white-space: nowrap;
     }
 
     #hint.visible {
       opacity: 1;
     }
-
   </style>
 </head>
 
-
 <body>
-
 
   <div id="scene">
 
-    <div id="glow"></div>
+    <div id="aura"></div>
 
-    <div class="blob"></div>
+    <div id="ambient"></div>
 
-    <div class="blob"></div>
-
-    <div class="blob"></div>
+    <div id="fluid"></div>
 
   </div>
 
-
-  <!-- Permission screen -->
 
   <div id="intro">
 
@@ -302,7 +260,7 @@
     </div>
 
     <div id="description">
-      Tilt your phone and watch the fluid respond to your movement.
+      Tilt your phone and move the fluid through space.
     </div>
 
     <button id="motionButton">
@@ -313,14 +271,20 @@
 
 
   <div id="hint">
-    Tilt your phone
+    Tilt and move your phone
   </div>
 
 
   <script>
 
-    const blobs =
-      document.querySelectorAll(".blob");
+    const fluid =
+      document.getElementById("fluid");
+
+    const aura =
+      document.getElementById("aura");
+
+    const ambient =
+      document.getElementById("ambient");
 
     const intro =
       document.getElementById("intro");
@@ -332,40 +296,20 @@
       document.getElementById("hint");
 
 
-    /*
-      Fluid positions
-    */
-
-    const positions = [
-
-      { x: 0, y: 0 },
-
-      { x: 0, y: 0 },
-
-      { x: 0, y: 0 }
-
-    ];
-
-
     let targetX = 0;
     let targetY = 0;
 
+    let x = 0;
+    let y = 0;
 
-    let currentX = 0;
-    let currentY = 0;
-
-
-    let previousX = 0;
-    let previousY = 0;
-
+    let lastX = 0;
+    let lastY = 0;
 
     let velocityX = 0;
     let velocityY = 0;
 
+    let time = 0;
 
-    /*
-      Start experience
-    */
 
     button.addEventListener(
       "click",
@@ -381,48 +325,23 @@
             const permission =
               await DeviceOrientationEvent.requestPermission();
 
-
             if (permission !== "granted") {
-
-              button.textContent =
-                "Motion Permission Needed";
-
               return;
-
             }
 
           }
 
-
           startMotion();
-
-          /*
-            Hide intro
-          */
 
           intro.classList.add("hidden");
 
-          /*
-            Show hint
-          */
-
           setTimeout(() => {
-
             hint.classList.add("visible");
-
           }, 700);
 
-
-          /*
-            Hide hint after a few seconds
-          */
-
           setTimeout(() => {
-
             hint.classList.remove("visible");
-
           }, 4500);
-
 
         } catch (error) {
 
@@ -434,10 +353,6 @@
     );
 
 
-    /*
-      Motion sensor
-    */
-
     function startMotion() {
 
       window.addEventListener(
@@ -448,7 +363,7 @@
             event.gamma || 0;
 
           const beta =
-            event.beta || 0;
+            event.beta || 45;
 
 
           /*
@@ -458,39 +373,26 @@
           const horizontal =
             Math.max(
               -1,
-              Math.min(
-                1,
-                gamma / 35
-              )
+              Math.min(1, gamma / 35)
             );
 
 
           /*
             Vertical tilt
-
-            45 degrees =
-            neutral position
           */
 
           const vertical =
             Math.max(
               -1,
-              Math.min(
-                1,
-                (beta - 45) / 35
-              )
+              Math.min(1, (beta - 45) / 35)
             );
 
 
-          /*
-            Target position
-          */
-
           targetX =
-            horizontal * 300;
+            horizontal * 280;
 
           targetY =
-            vertical * 140;
+            vertical * 150;
 
         }
       );
@@ -501,40 +403,34 @@
     }
 
 
-    /*
-      Animation loop
-    */
-
     function animate() {
 
+      time += 0.016;
+
 
       /*
-        Main fluid
+        Elastic movement
       */
 
-      currentX +=
-        (targetX - currentX) * 0.075;
+      x +=
+        (targetX - x) * 0.065;
 
-      currentY +=
-        (targetY - currentY) * 0.075;
+      y +=
+        (targetY - y) * 0.065;
 
 
       /*
-        Calculate velocity
+        Velocity
       */
 
       velocityX =
-        currentX - previousX;
+        x - lastX;
 
       velocityY =
-        currentY - previousY;
+        y - lastY;
 
-
-      previousX =
-        currentX;
-
-      previousY =
-        currentY;
+      lastX = x;
+      lastY = y;
 
 
       const speed =
@@ -545,25 +441,7 @@
 
 
       /*
-        Fluid stretch
-      */
-
-      const stretch =
-        Math.min(
-          1.75,
-          1 + speed * 0.035
-        );
-
-
-      const squash =
-        Math.max(
-          0.68,
-          1 - speed * 0.012
-        );
-
-
-      /*
-        Direction angle
+        Direction
       */
 
       const angle =
@@ -574,13 +452,56 @@
 
 
       /*
-        Main blob
+        Stretch based on speed
       */
 
-      blobs[0].style.transform = `
+      const stretch =
+        Math.min(
+          1.7,
+          1 + speed * 0.025
+        );
+
+
+      const squash =
+        Math.max(
+          0.7,
+          1 - speed * 0.012
+        );
+
+
+      /*
+        Organic breathing movement
+      */
+
+      const wobble =
+        Math.sin(time * 2.2) * 1.5;
+
+
+      /*
+        Change blob shape dynamically
+      */
+
+      const shape =
+        50 + wobble;
+
+
+      fluid.style.borderRadius = `
+        ${shape}% ${100 - shape}%
+        ${48 + wobble / 2}% ${52 - wobble / 2}%
+        /
+        ${52 - wobble / 2}% ${48 + wobble / 2}%
+        ${50 + wobble}% ${50 - wobble}%
+      `;
+
+
+      /*
+        Main fluid transformation
+      */
+
+      fluid.style.transform = `
         translate(
-          ${currentX}px,
-          ${currentY}px
+          calc(-50% + ${x}px),
+          calc(-50% + ${y}px)
         )
         rotate(${angle}deg)
         scaleX(${stretch})
@@ -589,46 +510,24 @@
 
 
       /*
-        Second blob follows behind
+        Aura follows the fluid
+        with extra softness
       */
 
-      positions[1].x +=
-        (currentX - positions[1].x) * 0.055;
-
-      positions[1].y +=
-        (currentY - positions[1].y) * 0.055;
-
-
-      blobs[1].style.transform = `
+      aura.style.transform = `
         translate(
-          ${positions[1].x}px,
-          ${positions[1].y}px
+          calc(-50% + ${x * 0.75}px),
+          calc(-50% + ${y * 0.75}px)
         )
-        rotate(${angle}deg)
-        scaleX(${1 + (stretch - 1) * 0.7})
-        scaleY(${1 - (stretch - 1) * 0.25})
+        scale(${1 + speed * 0.008})
       `;
 
 
-      /*
-        Third blob follows even slower
-      */
-
-      positions[2].x +=
-        (positions[1].x - positions[2].x) * 0.035;
-
-      positions[2].y +=
-        (positions[1].y - positions[2].y) * 0.035;
-
-
-      blobs[2].style.transform = `
+      ambient.style.transform = `
         translate(
-          ${positions[2].x}px,
-          ${positions[2].y}px
+          calc(-50% + ${x * 0.35}px),
+          calc(-50% + ${y * 0.35}px)
         )
-        rotate(${angle}deg)
-        scaleX(${1 + (stretch - 1) * 0.4})
-        scaleY(${1 - (stretch - 1) * 0.15})
       `;
 
 
