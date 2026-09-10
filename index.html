@@ -40,205 +40,201 @@ body {
 }
 
 
-/* =====================================
-   MAIN SCREEN
-===================================== */
+/* =====================================================
+   SCREEN
+===================================================== */
 
 #screen {
 
   position: fixed;
-
   inset: 0;
 
   overflow: hidden;
 
-  background: #111;
+  background: #000;
 
 }
 
 
-/* =====================================
+/* =====================================================
    WALLPAPER
-===================================== */
+===================================================== */
 
-#wallpaper {
+.layer {
 
   position: absolute;
 
-  width: 115%;
-  height: 115%;
+  width: 110%;
+  height: 110%;
 
-  left: -7.5%;
-  top: -7.5%;
+  left: -5%;
+  top: -5%;
 
-  /*
-    Temporary wallpaper.
-
-    We'll replace this with your
-    actual wallpaper image later.
-  */
-
-  background:
-
-    radial-gradient(
-      ellipse at 70% 75%,
-      #e8d6b5 0%,
-      #c9b58e 25%,
-      transparent 55%
-    ),
-
-    radial-gradient(
-      ellipse at 25% 35%,
-      #7d8791 0%,
-      #4f5964 35%,
-      transparent 65%
-    ),
-
-    linear-gradient(
-      150deg,
-      #596774 0%,
-      #92948e 35%,
-      #d7ccb5 65%,
-      #eee6d3 100%
-    );
+  background-image:
+    url("lockscreen.png");
 
   background-size: cover;
 
+  background-position: center;
+
+  background-repeat: no-repeat;
+
+}
+
+
+/* Main sharp image */
+
+#main {
+
+  z-index: 1;
+
   transform:
-    translate3d(0,0,0)
-    scale(1.03);
+    translate3d(0, 0, 0)
+    scale(1.02);
 
   will-change: transform;
 
-  transition: none;
 }
 
 
-/* =====================================
-   LEFT BLUR
-===================================== */
+/* =====================================================
+   LEFT BLURRED CONTINUATION
+===================================================== */
 
-.blur-left {
+#leftBlur {
 
-  position: absolute;
-
-  left: -5%;
-  top: -10%;
-
-  width: 38%;
-  height: 120%;
-
-  background: inherit;
-
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-
-  filter: blur(12px);
+  z-index: 2;
 
   opacity: 0;
 
+  filter: blur(18px);
+
   transform:
-    translateX(-30px)
-    scale(1.15);
+    translate3d(-30px, 0, 0)
+    scale(1.08);
+
+  will-change:
+    transform,
+    opacity;
 
   pointer-events: none;
 
-  will-change:
-    opacity,
-    transform;
+  /*
+    Only the LEFT part is visible.
+  */
+
+  clip-path:
+    polygon(
+      0 0,
+      38% 0,
+      38% 100%,
+      0 100%
+    );
 
 }
 
 
-/* =====================================
-   RIGHT BLUR
-===================================== */
+/* =====================================================
+   RIGHT BLURRED CONTINUATION
+===================================================== */
 
-.blur-right {
+#rightBlur {
 
-  position: absolute;
-
-  right: -5%;
-  top: -10%;
-
-  width: 38%;
-  height: 120%;
-
-  background: inherit;
-
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-
-  filter: blur(12px);
+  z-index: 2;
 
   opacity: 0;
 
+  filter: blur(18px);
+
   transform:
-    translateX(30px)
-    scale(1.15);
+    translate3d(30px, 0, 0)
+    scale(1.08);
+
+  will-change:
+    transform,
+    opacity;
 
   pointer-events: none;
 
-  will-change:
-    opacity,
-    transform;
+  /*
+    Only the RIGHT part is visible.
+  */
+
+  clip-path:
+    polygon(
+      62% 0,
+      100% 0,
+      100% 100%,
+      62% 100%
+    );
 
 }
 
 
-/* =====================================
-   BLUR FADE MASKS
-===================================== */
+/* =====================================================
+   SOFT EDGE LIGHT
+===================================================== */
 
-.blur-left {
+.edge {
 
-  -webkit-mask-image:
-    linear-gradient(
-      to right,
-      black 0%,
-      black 30%,
-      transparent 100%
-    );
+  position: absolute;
 
-  mask-image:
-    linear-gradient(
-      to right,
-      black 0%,
-      black 30%,
-      transparent 100%
-    );
+  top: 0;
+
+  width: 30%;
+
+  height: 100%;
+
+  z-index: 3;
+
+  opacity: 0;
+
+  pointer-events: none;
+
+  filter: blur(35px);
+
 }
 
 
-.blur-right {
+#leftEdge {
 
-  -webkit-mask-image:
+  left: -8%;
+
+  background:
     linear-gradient(
-      to left,
-      black 0%,
-      black 30%,
-      transparent 100%
+      90deg,
+      rgba(255,255,255,0.16),
+      transparent
     );
 
-  mask-image:
-    linear-gradient(
-      to left,
-      black 0%,
-      black 30%,
-      transparent 100%
-    );
 }
 
 
-/* =====================================
-   SUBTLE DARK EDGE
-===================================== */
+#rightEdge {
 
-#edge {
+  right: -8%;
+
+  background:
+    linear-gradient(
+      270deg,
+      rgba(255,255,255,0.16),
+      transparent
+    );
+
+}
+
+
+/* =====================================================
+   DARK EDGE
+===================================================== */
+
+#vignette {
 
   position: absolute;
 
   inset: 0;
+
+  z-index: 4;
 
   pointer-events: none;
 
@@ -255,127 +251,9 @@ body {
 }
 
 
-/* =====================================
-   CLOCK
-===================================== */
-
-#clock {
-
-  position: absolute;
-
-  top: 9vh;
-
-  left: 50%;
-
-  transform:
-    translateX(-50%);
-
-  color: white;
-
-  text-align: center;
-
-  z-index: 5;
-
-  white-space: nowrap;
-
-  text-shadow:
-    0 3px 20px rgba(0,0,0,0.18);
-
-}
-
-
-#time {
-
-  font-size:
-    clamp(
-      76px,
-      19vw,
-      155px
-    );
-
-  font-weight: 200;
-
-  letter-spacing: -6px;
-
-  line-height: 0.9;
-}
-
-
-#date {
-
-  margin-top: 14px;
-
-  font-size: 17px;
-
-  font-weight: 500;
-
-}
-
-
-/* =====================================
-   BOTTOM CONTROLS
-===================================== */
-
-#controls {
-
-  position: absolute;
-
-  z-index: 5;
-
-  bottom:
-    calc(
-      30px +
-      env(safe-area-inset-bottom)
-    );
-
-  left: 50%;
-
-  transform:
-    translateX(-50%);
-
-  display: flex;
-
-  gap: 22px;
-
-}
-
-
-.control {
-
-  width: 54px;
-  height: 54px;
-
-  display: flex;
-
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 50%;
-
-  background:
-    rgba(
-      255,
-      255,
-      255,
-      0.25
-    );
-
-  backdrop-filter:
-    blur(15px);
-
-  -webkit-backdrop-filter:
-    blur(15px);
-
-  color: white;
-
-  font-size: 20px;
-
-}
-
-
-/* =====================================
-   START SCREEN
-===================================== */
+/* =====================================================
+   INTRO
+===================================================== */
 
 #intro {
 
@@ -393,8 +271,10 @@ body {
 
   justify-content: center;
 
+  padding: 30px;
+
   background:
-    rgba(0,0,0,0.65);
+    rgba(0,0,0,0.62);
 
   backdrop-filter:
     blur(20px);
@@ -404,8 +284,11 @@ body {
 
   color: white;
 
+  text-align: center;
+
   transition:
-    opacity 0.7s ease;
+    opacity 0.8s ease,
+    visibility 0.8s ease;
 
 }
 
@@ -413,6 +296,8 @@ body {
 #intro.hidden {
 
   opacity: 0;
+
+  visibility: hidden;
 
   pointer-events: none;
 
@@ -432,9 +317,10 @@ body {
 
 #intro p {
 
-  width: 280px;
+  max-width: 290px;
 
-  margin: 12px 0 25px;
+  margin:
+    12px 0 25px;
 
   color:
     rgba(255,255,255,0.55);
@@ -443,19 +329,17 @@ body {
 
   line-height: 1.5;
 
-  text-align: center;
-
 }
 
 
 #start {
 
-  padding:
-    14px 25px;
-
-  border: 0;
+  border: none;
 
   border-radius: 30px;
+
+  padding:
+    14px 26px;
 
   background: white;
 
@@ -468,29 +352,29 @@ body {
 }
 
 
-/* =====================================
-   TILT INDICATOR
-===================================== */
+/* =====================================================
+   HINT
+===================================================== */
 
 #hint {
 
   position: fixed;
 
-  z-index: 10;
+  left: 50%;
 
   bottom:
     calc(
-      105px +
+      35px +
       env(safe-area-inset-bottom)
     );
 
-  left: 50%;
+  z-index: 10;
 
   transform:
     translateX(-50%);
 
   color:
-    rgba(255,255,255,0.45);
+    rgba(255,255,255,0.55);
 
   font-size: 13px;
 
@@ -498,6 +382,8 @@ body {
 
   transition:
     opacity 1s ease;
+
+  pointer-events: none;
 
 }
 
@@ -519,64 +405,53 @@ body {
 <div id="screen">
 
 
-  <!-- Wallpaper -->
-
-  <div id="wallpaper"></div>
-
-
-  <!-- Blurred continuation -->
+  <!-- Sharp wallpaper -->
 
   <div
-    class="blur-left"
-    id="blurLeft">
+    class="layer"
+    id="main">
+  </div>
+
+
+  <!-- Left blurred copy -->
+
+  <div
+    class="layer"
+    id="leftBlur">
+  </div>
+
+
+  <!-- Right blurred copy -->
+
+  <div
+    class="layer"
+    id="rightBlur">
+  </div>
+
+
+  <!-- Soft light edges -->
+
+  <div
+    class="edge"
+    id="leftEdge">
   </div>
 
 
   <div
-    class="blur-right"
-    id="blurRight">
+    class="edge"
+    id="rightEdge">
   </div>
 
 
-  <!-- Screen edge -->
+  <!-- Subtle vignette -->
 
-  <div id="edge"></div>
-
-
-  <!-- Clock -->
-
-  <div id="clock">
-
-    <div id="time">
-      9:41
-    </div>
-
-    <div id="date">
-      Wednesday, April 1
-    </div>
-
-  </div>
-
-
-  <!-- Bottom controls -->
-
-  <div id="controls">
-
-    <div class="control">
-      🔦
-    </div>
-
-    <div class="control">
-      📷
-    </div>
-
-  </div>
+  <div id="vignette"></div>
 
 
 </div>
 
 
-<!-- Permission -->
+<!-- Permission screen -->
 
 <div id="intro">
 
@@ -585,8 +460,9 @@ body {
   </h1>
 
   <p>
-    Tilt your phone and watch the
-    wallpaper continue beyond the screen.
+    Tilt your phone left and right
+    to reveal the screen continuing
+    beyond the edge.
   </p>
 
   <button id="start">
@@ -604,35 +480,44 @@ body {
 <script>
 
 
-const wallpaper =
+/* =====================================================
+   ELEMENTS
+===================================================== */
+
+const main =
   document.getElementById(
-    "wallpaper"
+    "main"
   );
 
-
-const blurLeft =
+const leftBlur =
   document.getElementById(
-    "blurLeft"
+    "leftBlur"
   );
 
-
-const blurRight =
+const rightBlur =
   document.getElementById(
-    "blurRight"
+    "rightBlur"
   );
 
+const leftEdge =
+  document.getElementById(
+    "leftEdge"
+  );
+
+const rightEdge =
+  document.getElementById(
+    "rightEdge"
+  );
 
 const intro =
   document.getElementById(
     "intro"
   );
 
-
 const start =
   document.getElementById(
     "start"
   );
-
 
 const hint =
   document.getElementById(
@@ -640,18 +525,18 @@ const hint =
   );
 
 
-/* =====================================
-   MOTION VALUES
-===================================== */
+/* =====================================================
+   MOTION
+===================================================== */
 
 let targetTilt = 0;
 
 let currentTilt = 0;
 
 
-/* =====================================
-   START
-===================================== */
+/* =====================================================
+   START EXPERIENCE
+===================================================== */
 
 start.addEventListener(
   "click",
@@ -660,7 +545,8 @@ start.addEventListener(
     try {
 
       /*
-        iPhone permission
+        iPhone requires permission
+        from a user interaction.
       */
 
       if (
@@ -676,10 +562,12 @@ start.addEventListener(
           await DeviceOrientationEvent
             .requestPermission();
 
-
         if (
           permission !== "granted"
         ) {
+
+          start.textContent =
+            "Motion Permission Denied";
 
           return;
 
@@ -689,7 +577,7 @@ start.addEventListener(
 
 
       /*
-        Start motion
+        Listen to phone movement.
       */
 
       window.addEventListener(
@@ -699,7 +587,7 @@ start.addEventListener(
 
 
       /*
-        Hide intro
+        Hide intro.
       */
 
       intro.classList.add(
@@ -708,7 +596,7 @@ start.addEventListener(
 
 
       /*
-        Show hint
+        Show instruction briefly.
       */
 
       setTimeout(
@@ -717,7 +605,7 @@ start.addEventListener(
             "show"
           );
         },
-        600
+        500
       );
 
 
@@ -744,24 +632,26 @@ start.addEventListener(
 );
 
 
-/* =====================================
-   DEVICE TILT
-===================================== */
+/* =====================================================
+   READ PHONE TILT
+===================================================== */
 
-function handleMotion(
-  event
-) {
+function handleMotion(event) {
+
+  /*
+    gamma:
+
+    left  = negative
+    center = 0
+    right = positive
+  */
 
   const gamma =
     event.gamma || 0;
 
 
   /*
-    Convert:
-
-    -35° → -1
-     0°  →  0
-    +35° → +1
+    Convert to -1 → +1.
   */
 
   targetTilt =
@@ -769,64 +659,79 @@ function handleMotion(
       -1,
       Math.min(
         1,
-        gamma / 35
+        gamma / 28
       )
     );
 
 }
 
 
-/* =====================================
+/* =====================================================
    ANIMATION
-===================================== */
+===================================================== */
 
 function animate() {
 
 
   /*
-    Smooth movement
+    Smooth physical movement.
 
-    This creates inertia.
+    The lower this number,
+    the more fluid the motion.
   */
 
   currentTilt +=
     (
       targetTilt -
       currentTilt
-    ) * 0.07;
+    ) * 0.075;
 
 
   /*
-    Convert tilt to pixels
+    Amount of tilt.
+
+    0 = phone level
+    1 = maximum right
+    -1 = maximum left
   */
 
-  const movement =
-    currentTilt * 45;
+  const amount =
+    Math.abs(
+      currentTilt
+    );
 
 
   /*
-    Wallpaper shifts slightly
-    opposite to the phone movement.
+    =================================================
+    MAIN WALLPAPER
+    =================================================
+
+    Moves slightly opposite
+    to the phone tilt.
   */
 
-  wallpaper.style.transform = `
+  const mainMovement =
+    currentTilt * -24;
+
+
+  main.style.transform = `
     translate3d(
-      ${-movement}px,
+      ${mainMovement}px,
       0,
       0
     )
-    scale(1.03)
+    scale(1.02)
   `;
 
 
   /*
-    ====================================
-    TILT RIGHT
-    ====================================
+    =================================================
+    RIGHT TILT
+    =================================================
 
-    currentTilt > 0
+    Phone tilts RIGHT.
 
-    Blur appears on LEFT.
+    LEFT side becomes blurred.
   */
 
   const rightTilt =
@@ -836,26 +741,38 @@ function animate() {
     );
 
 
-  blurLeft.style.opacity =
+  leftBlur.style.opacity =
     rightTilt * 0.95;
 
 
-  blurLeft.style.transform = `
-    translateX(
-      ${-rightTilt * 35}px
+  leftBlur.style.transform = `
+    translate3d(
+      ${-rightTilt * 55}px,
+      0,
+      0
     )
-    scale(1.15)
+    scale(
+      ${1.08 + rightTilt * 0.08}
+    )
   `;
 
 
+  leftEdge.style.opacity =
+    rightTilt * 0.55;
+
+
+  leftEdge.style.transform =
+    `translateX(${-rightTilt * 25}px)`;
+
+
   /*
-    ====================================
-    TILT LEFT
-    ====================================
+    =================================================
+    LEFT TILT
+    =================================================
 
-    currentTilt < 0
+    Phone tilts LEFT.
 
-    Blur appears on RIGHT.
+    RIGHT side becomes blurred.
   */
 
   const leftTilt =
@@ -865,16 +782,28 @@ function animate() {
     );
 
 
-  blurRight.style.opacity =
+  rightBlur.style.opacity =
     leftTilt * 0.95;
 
 
-  blurRight.style.transform = `
-    translateX(
-      ${leftTilt * 35}px
+  rightBlur.style.transform = `
+    translate3d(
+      ${leftTilt * 55}px,
+      0,
+      0
     )
-    scale(1.15)
+    scale(
+      ${1.08 + leftTilt * 0.08}
+    )
   `;
+
+
+  rightEdge.style.opacity =
+    leftTilt * 0.55;
+
+
+  rightEdge.style.transform =
+    `translateX(${leftTilt * 25}px)`;
 
 
   requestAnimationFrame(
@@ -882,66 +811,6 @@ function animate() {
   );
 
 }
-
-
-/* =====================================
-   REAL CLOCK
-===================================== */
-
-function updateClock() {
-
-  const now =
-    new Date();
-
-
-  let hours =
-    now.getHours();
-
-
-  let minutes =
-    now.getMinutes();
-
-
-  hours =
-    hours
-      .toString()
-      .padStart(2, "0");
-
-
-  minutes =
-    minutes
-      .toString()
-      .padStart(2, "0");
-
-
-  document.getElementById(
-    "time"
-  ).textContent =
-    `${hours}:${minutes}`;
-
-
-  document.getElementById(
-    "date"
-  ).textContent =
-    now.toLocaleDateString(
-      undefined,
-      {
-        weekday: "long",
-        month: "long",
-        day: "numeric"
-      }
-    );
-
-}
-
-
-updateClock();
-
-
-setInterval(
-  updateClock,
-  1000
-);
 
 </script>
 
