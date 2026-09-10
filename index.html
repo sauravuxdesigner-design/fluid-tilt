@@ -14,17 +14,11 @@
       background: #000;
     }
 
-    body {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
     #orb {
       position: absolute;
 
-      width: 220px;
-      height: 220px;
+      width: 240px;
+      height: 240px;
 
       left: 50%;
       top: 50%;
@@ -35,29 +29,24 @@
         radial-gradient(
           circle at 35% 30%,
           #ffffff 0%,
-          #c9f6ff 8%,
-          #72dfff 20%,
-          #168cff 45%,
-          #0047ff 65%,
-          rgba(0, 71, 255, 0) 78%
+          #d9faff 7%,
+          #8ee7ff 18%,
+          #168cff 42%,
+          #0047ff 63%,
+          rgba(0, 71, 255, 0) 80%
         );
 
-      filter: blur(18px);
+      filter: blur(16px);
 
       transform:
         translate(-50%, -50%)
-        scaleX(1)
-        scaleY(1)
-        rotate(0deg);
+        scale(1);
 
-      will-change: transform;
-
-      transition: none;
+      will-change: transform, border-radius;
     }
 
     #motionButton {
       position: fixed;
-
       z-index: 10;
 
       top: 30px;
@@ -74,21 +63,13 @@
       color: black;
 
       font-size: 16px;
-
-      cursor: pointer;
-    }
-
-    #motionButton:active {
-      transform: translateX(-50%) scale(0.96);
     }
   </style>
 </head>
 
 <body>
 
-  <button id="motionButton">
-    Enable Motion
-  </button>
+  <button id="motionButton">Enable Motion</button>
 
   <div id="orb"></div>
 
@@ -102,14 +83,20 @@
     let targetX = 0;
     let currentX = 0;
 
+    let targetY = 0;
+    let currentY = 0;
+
     let targetStretch = 1;
     let currentStretch = 1;
 
     let targetSquash = 1;
     let currentSquash = 1;
 
-    let targetRotation = 0;
-    let currentRotation = 0;
+    let targetRotate = 0;
+    let currentRotate = 0;
+
+    let targetSkew = 0;
+    let currentSkew = 0;
 
 
     button.addEventListener("click", async () => {
@@ -161,17 +148,29 @@
         "deviceorientation",
         (event) => {
 
-          const tilt = event.gamma || 0;
-
           /*
-            Convert phone tilt
-            into a smooth -1 → 1 value
+            LEFT / RIGHT
           */
 
-          const movement =
+          const gamma = event.gamma || 0;
+
+          const horizontal =
             Math.max(
               -1,
-              Math.min(1, tilt / 30)
+              Math.min(1, gamma / 30)
+            );
+
+
+          /*
+            FORWARD / BACKWARD
+          */
+
+          const beta = event.beta || 0;
+
+          const vertical =
+            Math.max(
+              -1,
+              Math.min(1, (beta - 45) / 30)
             );
 
 
@@ -179,31 +178,53 @@
             Position
           */
 
-          targetX = movement * 260;
+          targetX = horizontal * 230;
+
+          targetY = vertical * 80;
 
 
           /*
-            Fluid stretching
-
-            More tilt =
-            more stretching
+            Fluid intensity
           */
 
-          const intensity = Math.abs(movement);
+          const intensity =
+            Math.max(
+              Math.abs(horizontal),
+              Math.abs(vertical)
+            );
+
+
+          /*
+            Stretch toward movement
+          */
 
           targetStretch =
-            1 + intensity * 0.55;
-
-          targetSquash =
-            1 - intensity * 0.22;
+            1 + intensity * 0.65;
 
 
           /*
-            Rotate slightly
+            Compress perpendicular axis
           */
 
-          targetRotation =
-            movement * 12;
+          targetSquash =
+            1 - intensity * 0.25;
+
+
+          /*
+            Small rotation
+          */
+
+          targetRotate =
+            horizontal * 14;
+
+
+          /*
+            Slight skew creates
+            a more organic pull
+          */
+
+          targetSkew =
+            horizontal * 8;
 
         }
       );
@@ -217,38 +238,62 @@
     function animate() {
 
       /*
-        Elastic smoothing
-
-        Smaller number =
-        more liquid / delayed
-        movement
+        Smooth elastic interpolation
       */
 
       currentX +=
-        (targetX - currentX) * 0.08;
+        (targetX - currentX) * 0.07;
+
+      currentY +=
+        (targetY - currentY) * 0.07;
 
       currentStretch +=
-        (targetStretch - currentStretch) * 0.08;
+        (targetStretch - currentStretch) * 0.07;
 
       currentSquash +=
-        (targetSquash - currentSquash) * 0.08;
+        (targetSquash - currentSquash) * 0.07;
 
-      currentRotation +=
-        (targetRotation - currentRotation) * 0.08;
+      currentRotate +=
+        (targetRotate - currentRotate) * 0.07;
+
+      currentSkew +=
+        (targetSkew - currentSkew) * 0.07;
 
 
       /*
-        Apply the deformation
+        Organic blob shape
+      */
+
+      const leftRight =
+        50 - currentSkew;
+
+      const rightLeft =
+        50 + currentSkew;
+
+
+      orb.style.borderRadius = `
+        ${leftRight}% ${rightLeft}%
+        ${rightLeft}% ${leftRight}%
+        /
+        ${50 - currentSkew / 2}%
+        ${50 + currentSkew / 2}%
+        ${50 + currentSkew / 2}%
+        ${50 - currentSkew / 2}%
+      `;
+
+
+      /*
+        Apply movement + deformation
       */
 
       orb.style.transform = `
         translate(
           calc(-50% + ${currentX}px),
-          -50%
+          calc(-50% + ${currentY}px)
         )
         scaleX(${currentStretch})
         scaleY(${currentSquash})
-        rotate(${currentRotation}deg)
+        rotate(${currentRotate}deg)
       `;
 
 
