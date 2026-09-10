@@ -16,6 +16,7 @@
 <title>Duo</title>
 
 <style>
+
 * {
   box-sizing: border-box;
 }
@@ -26,12 +27,15 @@ body {
   width: 100%;
   height: 100%;
   overflow: hidden;
+
   background: #000;
+
   touch-action: none;
 }
 
 canvas {
   position: fixed;
+
   inset: 0;
 
   width: 100%;
@@ -40,44 +44,64 @@ canvas {
   display: block;
 }
 
+
+/* ================================================
+   MOTION PERMISSION
+================================================ */
+
 #permission {
+
   position: fixed;
+
   inset: 0;
+
   z-index: 10;
 
   display: flex;
+
   align-items: center;
+
   justify-content: center;
 
   background: #000;
+
   color: #fff;
 
   font-family:
     -apple-system,
     BlinkMacSystemFont,
     "SF Pro Display",
+    "Helvetica Neue",
     sans-serif;
 
   text-align: center;
 }
 
+
 #start {
+
   border: 0;
+
   border-radius: 999px;
 
   padding: 15px 25px;
 
   background: #fff;
+
   color: #000;
 
   font-size: 16px;
+
   font-weight: 600;
 
   cursor: pointer;
+
   -webkit-tap-highlight-color: transparent;
 }
 
+
 .permission-text {
+
   margin-top: 14px;
 
   opacity: .55;
@@ -85,8 +109,15 @@ canvas {
   font-size: 13px;
 }
 
+
+/* ================================================
+   RECALIBRATE
+================================================ */
+
 #recalibrate {
+
   position: fixed;
+
   z-index: 5;
 
   left: 50%;
@@ -97,22 +128,28 @@ canvas {
       env(safe-area-inset-bottom)
     );
 
-  transform: translateX(-50%);
+  transform:
+    translateX(-50%);
 
   display: none;
 
   border: 0;
+
   border-radius: 999px;
 
   padding: 9px 16px;
 
-  color: rgba(255,255,255,.8);
+  color:
+    rgba(255,255,255,.8);
 
   background:
     rgba(255,255,255,.12);
 
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter:
+    blur(20px);
+
+  -webkit-backdrop-filter:
+    blur(20px);
 
   font-family:
     -apple-system,
@@ -123,15 +160,25 @@ canvas {
 
   cursor: pointer;
 
-  -webkit-tap-highlight-color: transparent;
+  -webkit-tap-highlight-color:
+    transparent;
 }
 
+
+/* ================================================
+   ERROR
+================================================ */
+
 #error {
+
   position: fixed;
+
   z-index: 100;
 
   left: 20px;
+
   right: 20px;
+
   top: 20px;
 
   display: none;
@@ -146,14 +193,19 @@ canvas {
   color: white;
 
   font-family: monospace;
+
   font-size: 12px;
 
   white-space: pre-wrap;
 }
+
 </style>
+
 </head>
 
+
 <body>
+
 
 <canvas id="canvas"></canvas>
 
@@ -193,12 +245,15 @@ canvas {
 
 <script>
 
+
 /* =====================================================
    CANVAS / WEBGL
 ===================================================== */
 
 const canvas =
-  document.getElementById("canvas");
+  document.getElementById(
+    "canvas"
+  );
 
 
 const gl =
@@ -206,7 +261,9 @@ const gl =
     "webgl",
     {
       antialias: false,
+
       alpha: false,
+
       premultipliedAlpha: false
     }
   );
@@ -254,20 +311,6 @@ void main() {
 
 /* =====================================================
    FRAGMENT SHADER
-
-   Reference model:
-
-   UI plane
-       ↓
-   eye
-       ↓
-   tilted glass
-       ↓
-   ray intersection
-       ↓
-   gap-based blur
-       ↓
-   Vogel disk
 ===================================================== */
 
 const fragmentSource = `
@@ -304,7 +347,7 @@ const float TWO_PI =
 
 
 /* =====================================================
-   IMAGE MAPPING
+   IMAGE UV
 ===================================================== */
 
 vec2 imageUV(vec2 p) {
@@ -394,7 +437,7 @@ void main() {
       clamp(
         abs(u_tiltDegrees),
         0.0,
-        45.0
+        18.0
       )
     );
 
@@ -479,7 +522,8 @@ void main() {
 
 
   /*
-   * Glass-to-plane separation.
+   * Physical gap between
+   * glass and interface plane.
    */
 
   float gap =
@@ -497,35 +541,41 @@ void main() {
 
 
   /* -----------------------------------------------
-     RAY PROJECTION
+     SAFE DEPTH
   ------------------------------------------------ */
 
-  float depth =
-    u_eyeDistance -
-    gap;
-
-
   /*
-   * Invalid depth.
+   * At extreme physical movement,
+   * never allow the virtual screen
+   * to move behind the viewer.
+   *
+   * This is the main fix for the
+   * disappearing-screen problem.
    */
 
-  if (
-    depth <=
-    0.001
-  ) {
+  float safeGap =
+    min(
+      gap,
+      u_eyeDistance *
+      0.35
+    );
 
-    gl_FragColor =
-      vec4(
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      );
 
-    return;
+  float depth =
+    max(
 
-  }
+      u_eyeDistance -
+      safeGap,
 
+      u_eyeDistance *
+      0.65
+
+    );
+
+
+  /* -----------------------------------------------
+     RAY PROJECTION
+  ------------------------------------------------ */
 
   float t =
     u_eyeDistance /
@@ -547,45 +597,33 @@ void main() {
 
 
   /* -----------------------------------------------
-     GAP-BASED BLUR
+     BLUR RADIUS
   ------------------------------------------------ */
 
   float radius =
     u_blurSpread *
-    gap;
+    safeGap;
 
 
   /*
-   * If the complete blur
-   * kernel misses the plane,
-   * render black.
+   * Keep the projected point
+   * inside the visible screen.
+   *
+   * Previously this region could
+   * disappear entirely when the
+   * ray left the plane.
    */
 
-  if (
+  hit =
+    clamp(
+      hit,
 
-    hit.x < -radius ||
+      vec2(
+        0.0
+      ),
 
-    hit.y < -radius ||
-
-    hit.x >
-      size.x + radius ||
-
-    hit.y >
-      size.y + radius
-
-  ) {
-
-    gl_FragColor =
-      vec4(
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      );
-
-    return;
-
-  }
+      size
+    );
 
 
   /* -----------------------------------------------
@@ -594,11 +632,13 @@ void main() {
 
   float attenuation =
     max(
+
       1.0 -
       u_darkening *
       radius,
 
       0.0
+
     );
 
 
@@ -612,7 +652,9 @@ void main() {
   ) {
 
     gl_FragColor =
-      content(hit) *
+      content(
+        hit
+      ) *
       attenuation;
 
     return;
@@ -621,14 +663,18 @@ void main() {
 
 
   /* -----------------------------------------------
-     VOGEL DISK
+     VOGEL DISK BLUR
   ------------------------------------------------ */
 
   float taps =
     clamp(
+
       radius * 2.0,
+
       6.0,
+
       32.0
+
     );
 
 
@@ -638,6 +684,7 @@ void main() {
       sin(
         dot(
           fragCoord,
+
           vec2(
             12.9898,
             78.233
@@ -654,7 +701,9 @@ void main() {
 
 
   vec3 sum =
-    vec3(0.0);
+    vec3(
+      0.0
+    );
 
 
   float weightSum =
@@ -672,7 +721,7 @@ void main() {
 
 
     /*
-     * Mask unused taps.
+     * Ignore unused taps.
      */
 
     float weight =
@@ -684,19 +733,21 @@ void main() {
 
 
     /*
-     * Vogel radius.
+     * Vogel disk distribution.
      */
 
     float r =
       radius *
       sqrt(
+
         (fi + 0.5) /
         taps
+
       );
 
 
     /*
-     * Golden-angle rotation.
+     * Golden angle.
      */
 
     float angle =
@@ -708,8 +759,11 @@ void main() {
     vec2 offset =
       r *
       vec2(
+
         cos(angle),
+
         sin(angle)
+
       );
 
 
@@ -719,11 +773,31 @@ void main() {
 
 
     /*
-     * No clamping.
+     * Clamp each sample too.
+     *
+     * This prevents edge samples
+     * from producing invalid
+     * texture coordinates.
      */
 
+    p =
+      clamp(
+
+        p,
+
+        vec2(
+          0.0
+        ),
+
+        size
+
+      );
+
+
     sum +=
-      content(p).rgb *
+      content(
+        p
+      ).rgb *
       weight;
 
 
@@ -743,10 +817,12 @@ void main() {
 
   gl_FragColor =
     vec4(
+
       average *
       attenuation,
 
       1.0
+
     );
 
 }
@@ -764,7 +840,9 @@ function compileShader(
 ) {
 
   const shader =
-    gl.createShader(type);
+    gl.createShader(
+      type
+    );
 
 
   gl.shaderSource(
@@ -791,7 +869,9 @@ function compileShader(
       );
 
 
-    showError(message);
+    showError(
+      message
+    );
 
 
     throw new Error(
@@ -812,15 +892,21 @@ function compileShader(
 
 const vertexShader =
   compileShader(
+
     gl.VERTEX_SHADER,
+
     vertexSource
+
   );
 
 
 const fragmentShader =
   compileShader(
+
     gl.FRAGMENT_SHADER,
+
     fragmentSource
+
   );
 
 
@@ -853,9 +939,11 @@ if (
 ) {
 
   throw new Error(
+
     gl.getProgramInfoLog(
       program
     )
+
   );
 
 }
@@ -887,11 +975,14 @@ gl.bufferData(
   new Float32Array([
 
     -1, -1,
+
      1, -1,
 
     -1,  1,
 
+
     -1,  1,
+
      1, -1,
 
      1,  1
@@ -905,8 +996,11 @@ gl.bufferData(
 
 const position =
   gl.getAttribLocation(
+
     program,
+
     "a_position"
+
   );
 
 
@@ -1009,42 +1103,64 @@ image.onload =
   function() {
 
     gl.bindTexture(
+
       gl.TEXTURE_2D,
+
       texture
+
     );
 
 
     gl.pixelStorei(
+
       gl.UNPACK_FLIP_Y_WEBGL,
+
       true
+
     );
 
 
     gl.texParameteri(
+
       gl.TEXTURE_2D,
+
       gl.TEXTURE_MIN_FILTER,
+
       gl.LINEAR
+
     );
 
 
     gl.texParameteri(
+
       gl.TEXTURE_2D,
+
       gl.TEXTURE_MAG_FILTER,
+
       gl.LINEAR
+
     );
 
 
     gl.texParameteri(
+
       gl.TEXTURE_2D,
+
       gl.TEXTURE_WRAP_S,
+
       gl.CLAMP_TO_EDGE
+
     );
 
 
     gl.texParameteri(
+
       gl.TEXTURE_2D,
+
       gl.TEXTURE_WRAP_T,
+
       gl.CLAMP_TO_EDGE
+
     );
 
 
@@ -1066,8 +1182,11 @@ image.onload =
 
 
     gl.uniform1i(
+
       U.image,
+
       0
+
     );
 
 
@@ -1089,31 +1208,41 @@ function resize() {
 
   const dpr =
     Math.min(
-      window.devicePixelRatio || 1,
+
+      window.devicePixelRatio ||
+      1,
+
       2
+
     );
 
 
   canvas.width =
     Math.floor(
+
       window.innerWidth *
       dpr
+
     );
 
 
   canvas.height =
     Math.floor(
+
       window.innerHeight *
       dpr
+
     );
 
 
   gl.viewport(
 
     0,
+
     0,
 
     canvas.width,
+
     canvas.height
 
   );
@@ -1124,6 +1253,7 @@ function resize() {
     U.resolution,
 
     canvas.width,
+
     canvas.height
 
   );
@@ -1151,13 +1281,16 @@ function resize() {
 
 
 window.addEventListener(
+
   "resize",
+
   resize
+
 );
 
 
 /* =====================================================
-   IPHONE MOTION
+   DEVICE MOTION
 ===================================================== */
 
 let rawGamma = 0;
@@ -1170,12 +1303,18 @@ let currentTilt = 0;
 
 
 /*
- * Maximum physical tilt used
- * by the effect.
+ * IMPORTANT:
+ *
+ * This is the maximum visual
+ * tilt of the effect.
+ *
+ * The physical phone can be
+ * rotated much further, but
+ * the animation will never
+ * exceed this value.
  */
 
-const MAX_PHONE_TILT =
-  45;
+const MAX_PHONE_TILT = 18;
 
 
 /* =====================================================
@@ -1189,20 +1328,36 @@ function updateTilt() {
     zeroGamma;
 
 
-  targetTilt =
-    Math.max(
+  /*
+   * Normalize relative movement.
+   */
 
-      -MAX_PHONE_TILT,
+  const normalized =
+    relative /
+    MAX_PHONE_TILT;
 
-      Math.min(
 
-        MAX_PHONE_TILT,
+  /*
+   * Soft-limit the motion
+   * instead of using a hard clamp.
+   *
+   * tanh gives us a smooth
+   * physical-feeling resistance
+   * near the maximum.
+   */
 
-        relative
+  const softLimit =
+    Math.tanh(
 
-      )
+      normalized *
+      1.4
 
     );
+
+
+  targetTilt =
+    softLimit *
+    MAX_PHONE_TILT;
 
 }
 
@@ -1218,6 +1373,7 @@ function handleOrientation(
   if (
 
     event.gamma === null ||
+
     event.gamma === undefined
 
   ) {
@@ -1237,7 +1393,7 @@ function handleOrientation(
 
 
 /* =====================================================
-   RECALIBRATION
+   CALIBRATION
 ===================================================== */
 
 function calibrate() {
@@ -1261,8 +1417,11 @@ document
     "recalibrate"
   )
   .addEventListener(
+
     "click",
+
     calibrate
+
   );
 
 
@@ -1303,7 +1462,9 @@ async function startMotion() {
       ) {
 
         throw new Error(
+
           "Motion permission was not granted."
+
         );
 
       }
@@ -1339,9 +1500,8 @@ async function startMotion() {
 
 
     /*
-     * Let the sensor settle,
-     * then use the current phone
-     * position as zero.
+     * Give the sensor a moment
+     * to settle before calibration.
      */
 
     setTimeout(
@@ -1407,7 +1567,7 @@ function showError(
 
 
 /* =====================================================
-   RENDER LOOP
+   RENDER
 ===================================================== */
 
 function render() {
@@ -1432,11 +1592,8 @@ function render() {
 
 
   /*
-   * Positive tilt:
-   * right hinge
-   *
-   * Negative tilt:
-   * left hinge
+   * Determine which side
+   * acts as the hinge.
    */
 
   const hingeSide =
@@ -1446,12 +1603,11 @@ function render() {
 
 
   /* -----------------------------------------------
-     Reference parameters
+     REFERENCE PARAMETERS
   ------------------------------------------------ */
 
   /*
-   * Approximate eye distance
-   * used by the reference.
+   * Eye/view distance.
    */
 
   gl.uniform1f(
@@ -1464,7 +1620,8 @@ function render() {
 
 
   /*
-   * Gap → blur relationship.
+   * Blur generated by the
+   * physical gap.
    */
 
   gl.uniform1f(
@@ -1477,7 +1634,8 @@ function render() {
 
 
   /*
-   * Gap → darkening relationship.
+   * Darkening generated by
+   * the physical gap.
    */
 
   gl.uniform1f(
@@ -1490,7 +1648,7 @@ function render() {
 
 
   /*
-   * Current physical tilt.
+   * Current controlled tilt.
    */
 
   gl.uniform1f(
@@ -1503,8 +1661,7 @@ function render() {
 
 
   /*
-   * Which side acts as
-   * the hinge.
+   * Current hinge direction.
    */
 
   gl.uniform1f(
@@ -1517,7 +1674,7 @@ function render() {
 
 
   /* -----------------------------------------------
-     Texture
+     TEXTURE
   ------------------------------------------------ */
 
   gl.activeTexture(
@@ -1526,8 +1683,11 @@ function render() {
 
 
   gl.bindTexture(
+
     gl.TEXTURE_2D,
+
     texture
+
   );
 
 
@@ -1546,6 +1706,15 @@ function render() {
   );
 
 }
+
+
+/* =====================================================
+   START
+===================================================== */
+
+requestAnimationFrame(
+  render
+);
 
 </script>
 
