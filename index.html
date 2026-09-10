@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
 <meta charset="UTF-8">
 
 <meta name="viewport"
@@ -14,7 +13,6 @@
 <title>Duo Lock Screen</title>
 
 <style>
-
 * {
     box-sizing: border-box;
 }
@@ -42,10 +40,7 @@ canvas {
     display: block;
 }
 
-
-/* =========================
-   PERMISSION SCREEN
-   ========================= */
+/* Permission screen */
 
 #permission {
     position: fixed;
@@ -73,14 +68,12 @@ canvas {
 
 #permission h1 {
     margin: 0 0 12px;
-
     font-size: 28px;
     font-weight: 600;
 }
 
 #permission p {
     max-width: 300px;
-
     margin: 0 0 28px;
 
     font-size: 15px;
@@ -108,14 +101,8 @@ canvas {
     transform: scale(.97);
 }
 
-
-/* =========================
-   RECALIBRATE
-   ========================= */
-
 #recalibrate {
     position: fixed;
-
     z-index: 50;
 
     left: 50%;
@@ -140,14 +127,8 @@ canvas {
     font-size: 12px;
 }
 
-
-/* =========================
-   ERROR
-   ========================= */
-
 #error {
     position: fixed;
-
     z-index: 200;
 
     left: 20px;
@@ -165,21 +146,15 @@ canvas {
     color: #fff;
 
     font-family: monospace;
-
     font-size: 12px;
-
     line-height: 1.4;
 
     word-break: break-word;
 }
-
 </style>
-
 </head>
 
-
 <body>
-
 
 <div id="permission">
 
@@ -196,28 +171,23 @@ canvas {
 
 </div>
 
-
 <canvas id="canvas"></canvas>
-
 
 <button id="recalibrate">
     Recalibrate
 </button>
-
 
 <div id="error"></div>
 
 
 <script>
 
-
 /* =========================================================
-   ERROR HANDLER
+   ERROR HANDLING
    ========================================================= */
 
 const errorBox =
     document.getElementById("error");
-
 
 function showError(message) {
 
@@ -238,24 +208,18 @@ function showError(message) {
 const canvas =
     document.getElementById("canvas");
 
-
 const gl =
-    canvas.getContext(
-        "webgl",
-        {
-            alpha: false,
-            antialias: false,
-            premultipliedAlpha: false
-        }
-    );
-
+    canvas.getContext("webgl", {
+        alpha: false,
+        antialias: false,
+        premultipliedAlpha: false
+    });
 
 if (!gl) {
 
     showError(
         "WebGL is not supported."
     );
-
 }
 
 
@@ -296,82 +260,41 @@ precision highp float;
 
 varying vec2 v_uv;
 
-
-/* ---------------------------------------------------------
-   TEXTURE
-   --------------------------------------------------------- */
-
 uniform sampler2D u_image;
 
-
-/* ---------------------------------------------------------
-   SCREEN
-   --------------------------------------------------------- */
-
 uniform float u_aspect;
-
 uniform float u_imageAspect;
 
 uniform vec2 u_resolution;
 
 
-/* ---------------------------------------------------------
-   FOLD
-   --------------------------------------------------------- */
+/*
+   Fold state
+*/
 
 uniform float u_angle;
-
 uniform float u_hinge;
 
 
-/* ---------------------------------------------------------
-   PHYSICAL MODEL
-   --------------------------------------------------------- */
-
 /*
-   Virtual physical width of the phone screen.
-
-   Typical smartphone display width is around 70 mm.
+   Physical model
 */
 
 uniform float u_screenWidthMm;
-
-
-/*
-   Eye distance from screen plane.
-
-   Reference uses 320 mm.
-*/
-
 uniform float u_viewDistanceMm;
 
-
-/*
-   Android reference values:
-
-       blurPerMm = 0.55
-       maxBlur = 24px
-
-       darkenPerMm = 0.012
-       maxDarken = 0.55
-*/
-
 uniform float u_blurPerMm;
-
 uniform float u_maxBlurPx;
 
 uniform float u_darkenPerMm;
-
 uniform float u_maxDarken;
 
 
 /* =========================================================
-   COVER MAPPING
+   IMAGE COVER
    ========================================================= */
 
-vec2 imageUV(
-    vec2 uv
-) {
+vec2 getImageUV(vec2 uv) {
 
     float screenAspect =
         u_aspect;
@@ -379,10 +302,8 @@ vec2 imageUV(
     float imageAspect =
         u_imageAspect;
 
-
     vec2 scale =
         vec2(1.0);
-
 
     if (
         screenAspect >
@@ -400,7 +321,6 @@ vec2 imageUV(
             imageAspect;
     }
 
-
     return
         (uv - 0.5)
         * scale
@@ -409,16 +329,13 @@ vec2 imageUV(
 
 
 /* =========================================================
-   IMAGE
+   IMAGE SAMPLE
    ========================================================= */
 
-vec4 sampleImage(
-    vec2 uv
-) {
+vec4 sampleImage(vec2 uv) {
 
     vec2 p =
-        imageUV(uv);
-
+        getImageUV(uv);
 
     if (
         p.x < 0.0 ||
@@ -429,7 +346,6 @@ vec4 sampleImage(
 
         return vec4(0.0);
     }
-
 
     return texture2D(
         u_image,
@@ -455,10 +371,6 @@ vec4 diskBlur(
     }
 
 
-    /*
-       Convert pixel radius to UV.
-    */
-
     vec2 r =
         vec2(
             radiusPx /
@@ -473,66 +385,41 @@ vec4 diskBlur(
         vec4(0.0);
 
 
-    /*
-       Center
-    */
+    /* center */
 
     result +=
         sampleImage(uv)
         * 0.18;
 
 
-    /*
-       Ring samples
-    */
+    /* cardinal */
 
     result +=
         sampleImage(
-            uv +
-            vec2(
-                r.x,
-                0.0
-            )
+            uv + vec2(r.x, 0.0)
+        )
+        * 0.09;
+
+    result +=
+        sampleImage(
+            uv - vec2(r.x, 0.0)
+        )
+        * 0.09;
+
+    result +=
+        sampleImage(
+            uv + vec2(0.0, r.y)
+        )
+        * 0.09;
+
+    result +=
+        sampleImage(
+            uv - vec2(0.0, r.y)
         )
         * 0.09;
 
 
-    result +=
-        sampleImage(
-            uv +
-            vec2(
-                -r.x,
-                0.0
-            )
-        )
-        * 0.09;
-
-
-    result +=
-        sampleImage(
-            uv +
-            vec2(
-                0.0,
-                r.y
-            )
-        )
-        * 0.09;
-
-
-    result +=
-        sampleImage(
-            uv +
-            vec2(
-                0.0,
-                -r.y
-            )
-        )
-        * 0.09;
-
-
-    /*
-       Diagonal
-    */
+    /* diagonal */
 
     result +=
         sampleImage(
@@ -543,7 +430,6 @@ vec4 diskBlur(
             )
         )
         * 0.07;
-
 
     result +=
         sampleImage(
@@ -555,7 +441,6 @@ vec4 diskBlur(
         )
         * 0.07;
 
-
     result +=
         sampleImage(
             uv +
@@ -565,7 +450,6 @@ vec4 diskBlur(
             )
         )
         * 0.07;
-
 
     result +=
         sampleImage(
@@ -578,9 +462,7 @@ vec4 diskBlur(
         * 0.07;
 
 
-    /*
-       Inner ring
-    */
+    /* inner ring */
 
     result +=
         sampleImage(
@@ -592,17 +474,15 @@ vec4 diskBlur(
         )
         * 0.045;
 
-
     result +=
         sampleImage(
-            uv +
+            uv -
             vec2(
-                -r.x * 0.45,
+                r.x * 0.45,
                 0.0
             )
         )
         * 0.045;
-
 
     result +=
         sampleImage(
@@ -614,13 +494,12 @@ vec4 diskBlur(
         )
         * 0.045;
 
-
     result +=
         sampleImage(
-            uv +
+            uv -
             vec2(
                 0.0,
-                -r.y * 0.45
+                r.y * 0.45
             )
         )
         * 0.045;
@@ -636,12 +515,11 @@ vec4 diskBlur(
 
 void main() {
 
-
-    /* =====================================================
-       ZERO TILT
-
-       Keep the wallpaper completely untouched.
-       ===================================================== */
+    /*
+       -----------------------------------------------------
+       ZERO STATE
+       -----------------------------------------------------
+    */
 
     if (
         abs(u_angle) <
@@ -655,44 +533,49 @@ void main() {
     }
 
 
-    /* =====================================================
-       SCREEN COORDINATES
-       ===================================================== */
+    /*
+       -----------------------------------------------------
+       SCREEN POSITION
+       -----------------------------------------------------
+    */
 
     float x =
         (v_uv.x - 0.5)
-        *
-        u_aspect;
-
+        * u_aspect;
 
     float y =
         v_uv.y - 0.5;
 
 
-    /* =====================================================
+    /*
+       -----------------------------------------------------
        HINGE
-       ===================================================== */
+       -----------------------------------------------------
+
+       u_hinge:
+
+       -1 = left hinge
+       +1 = right hinge
+    */
 
     float hingeX =
-        u_hinge
-        *
-        u_aspect
-        *
+        u_hinge *
+        u_aspect *
         0.5;
 
 
     /*
-       Distance from hinge.
+       -----------------------------------------------------
+       LOCAL DISTANCE
+       -----------------------------------------------------
 
-       0 at hinge.
-       maximum at opposite edge.
+       Always measured INTO the screen from the hinge.
     */
 
     float localX =
         (x - hingeX)
         *
         (-u_hinge);
-
 
     localX =
         max(
@@ -701,20 +584,30 @@ void main() {
         );
 
 
-    /* =====================================================
-       ROTATED GLASS
-       ===================================================== */
+    /*
+       -----------------------------------------------------
+       ROTATION
+       -----------------------------------------------------
+
+       IMPORTANT:
+
+       Z direction is mirrored with the hinge.
+
+       This makes left/right physically symmetric.
+    */
+
+    float angle =
+        abs(u_angle);
 
     float c =
-        cos(u_angle);
-
+        cos(angle);
 
     float s =
-        sin(u_angle);
+        sin(angle);
 
 
     /*
-       Position of glass in X.
+       X position of glass.
     */
 
     float glassX =
@@ -728,25 +621,23 @@ void main() {
 
 
     /*
-       Physical distance from original plane.
+       Z position.
 
-       THIS is the important quantity.
+       This is the critical left/right correction.
     */
 
     float glassZ =
         localX *
-        s;
+        s *
+        (-u_hinge);
 
-
-    /* =====================================================
-       PHYSICAL SCALE
-       ===================================================== */
 
     /*
-       Convert normalized world X into millimetres.
+       -----------------------------------------------------
+       PHYSICAL GAP
+       -----------------------------------------------------
 
-       Screen world width =
-       u_screenWidthMm.
+       Convert normalized screen distance into mm.
     */
 
     float gapMm =
@@ -759,15 +650,17 @@ void main() {
 
 
     /*
-       The actual blur radius.
+       -----------------------------------------------------
+       PHYSICAL BLUR
+       -----------------------------------------------------
 
-       gap mm × 0.55 px/mm.
+       0.55 px/mm
+       maximum 24px
     */
 
     float blurRadiusPx =
         gapMm *
         u_blurPerMm;
-
 
     blurRadiusPx =
         min(
@@ -776,9 +669,11 @@ void main() {
         );
 
 
-    /* =====================================================
-       VIRTUAL GLASS POINT
-       ===================================================== */
+    /*
+       -----------------------------------------------------
+       VIRTUAL GLASS
+       -----------------------------------------------------
+    */
 
     vec3 glassPoint =
         vec3(
@@ -788,13 +683,10 @@ void main() {
         );
 
 
-    /* =====================================================
-       STATIONARY EYE
-       ===================================================== */
-
     /*
-       Convert eye distance from mm
-       to our normalized world units.
+       -----------------------------------------------------
+       STATIONARY EYE
+       -----------------------------------------------------
     */
 
     float eyeZ =
@@ -814,26 +706,26 @@ void main() {
         );
 
 
-    /* =====================================================
+    /*
+       -----------------------------------------------------
        RAY
-       ===================================================== */
+       -----------------------------------------------------
+    */
 
     vec3 ray =
         glassPoint -
         eye;
 
 
-    /* =====================================================
-       RAY → ORIGINAL PLANE
-       ===================================================== */
-
-    float denominator =
-        ray.z;
-
+    /*
+       -----------------------------------------------------
+       RAY → ORIGINAL SCREEN
+       -----------------------------------------------------
+    */
 
     float t =
         -eye.z /
-        denominator;
+        ray.z;
 
 
     vec3 hit =
@@ -842,9 +734,11 @@ void main() {
         t;
 
 
-    /* =====================================================
-       SOURCE UV
-       ===================================================== */
+    /*
+       -----------------------------------------------------
+       SOURCE IMAGE
+       -----------------------------------------------------
+    */
 
     vec2 sourceUV =
         vec2(
@@ -858,11 +752,13 @@ void main() {
         );
 
 
-    /* =====================================================
+    /*
+       -----------------------------------------------------
        VALIDITY
-       ===================================================== */
+       -----------------------------------------------------
+    */
 
-    float validX =
+    float insideX =
         step(
             -u_aspect * 0.5,
             hit.x
@@ -874,7 +770,7 @@ void main() {
         );
 
 
-    float validY =
+    float insideY =
         step(
             -0.5,
             hit.y
@@ -886,7 +782,7 @@ void main() {
         );
 
 
-    float validT =
+    float forward =
         step(
             0.0,
             t
@@ -894,14 +790,16 @@ void main() {
 
 
     float valid =
-        validX *
-        validY *
-        validT;
+        insideX *
+        insideY *
+        forward;
 
 
-    /* =====================================================
-       BLUR
-       ===================================================== */
+    /*
+       -----------------------------------------------------
+       BLUR THE WARPED IMAGE
+       -----------------------------------------------------
+    */
 
     vec4 foldedColor =
         diskBlur(
@@ -910,14 +808,15 @@ void main() {
         );
 
 
-    /* =====================================================
+    /*
+       -----------------------------------------------------
        DARKEN
-       ===================================================== */
+       -----------------------------------------------------
+    */
 
     float darken =
         gapMm *
         u_darkenPerMm;
-
 
     darken =
         min(
@@ -925,18 +824,15 @@ void main() {
             u_maxDarken
         );
 
-
     foldedColor.rgb *=
         1.0 -
         darken;
 
 
-    /* =====================================================
-       MISSED RAYS
-       ===================================================== */
-
     /*
-       Soft black transition.
+       -----------------------------------------------------
+       MISSED RAY
+       -----------------------------------------------------
     */
 
     float missFade =
@@ -946,14 +842,15 @@ void main() {
             valid
         );
 
-
     foldedColor.rgb *=
         missFade;
 
 
-    /* =====================================================
+    /*
+       -----------------------------------------------------
        EFFECT STRENGTH
-       ===================================================== */
+       -----------------------------------------------------
+    */
 
     float strength =
         smoothstep(
@@ -963,19 +860,11 @@ void main() {
         );
 
 
-    /*
-       Original sharp wallpaper.
-    */
-
     vec4 original =
         sampleImage(v_uv);
 
 
-    /*
-       Blend in the physical effect.
-    */
-
-    vec4 finalColor =
+    vec4 result =
         mix(
             original,
             foldedColor,
@@ -985,7 +874,7 @@ void main() {
 
     gl_FragColor =
         vec4(
-            finalColor.rgb,
+            result.rgb,
             1.0
         );
 }
@@ -994,7 +883,7 @@ void main() {
 
 
 /* =========================================================
-   SHADER COMPILATION
+   SHADER CREATION
    ========================================================= */
 
 function createShader(
@@ -1005,17 +894,14 @@ function createShader(
     const shader =
         gl.createShader(type);
 
-
     gl.shaderSource(
         shader,
         source
     );
 
-
     gl.compileShader(
         shader
     );
-
 
     if (
         !gl.getShaderParameter(
@@ -1037,7 +923,6 @@ function createShader(
         throw new Error(error);
     }
 
-
     return shader;
 }
 
@@ -1054,34 +939,28 @@ function createProgram() {
             vertexShaderSource
         );
 
-
     const fragment =
         createShader(
             gl.FRAGMENT_SHADER,
             fragmentShaderSource
         );
 
-
     const program =
         gl.createProgram();
-
 
     gl.attachShader(
         program,
         vertex
     );
 
-
     gl.attachShader(
         program,
         fragment
     );
 
-
     gl.linkProgram(
         program
     );
-
 
     if (
         !gl.getProgramParameter(
@@ -1103,7 +982,6 @@ function createProgram() {
         throw new Error(error);
     }
 
-
     return program;
 }
 
@@ -1119,9 +997,7 @@ try {
         program
     );
 
-}
-
-catch (error) {
+} catch (error) {
 
     console.error(error);
 }
@@ -1134,12 +1010,10 @@ catch (error) {
 const buffer =
     gl.createBuffer();
 
-
 gl.bindBuffer(
     gl.ARRAY_BUFFER,
     buffer
 );
-
 
 gl.bufferData(
     gl.ARRAY_BUFFER,
@@ -1160,11 +1034,9 @@ const position =
         "a_position"
     );
 
-
 gl.enableVertexAttribArray(
     position
 );
-
 
 gl.vertexAttribPointer(
     position,
@@ -1263,7 +1135,6 @@ const U = {
 const texture =
     gl.createTexture();
 
-
 const image =
     new Image();
 
@@ -1276,12 +1147,10 @@ image.onload =
             texture
         );
 
-
         gl.pixelStorei(
             gl.UNPACK_FLIP_Y_WEBGL,
             true
         );
-
 
         gl.texImage2D(
             gl.TEXTURE_2D,
@@ -1292,13 +1161,11 @@ image.onload =
             image
         );
 
-
         gl.texParameteri(
             gl.TEXTURE_2D,
             gl.TEXTURE_MIN_FILTER,
             gl.LINEAR
         );
-
 
         gl.texParameteri(
             gl.TEXTURE_2D,
@@ -1306,13 +1173,11 @@ image.onload =
             gl.LINEAR
         );
 
-
         gl.texParameteri(
             gl.TEXTURE_2D,
             gl.TEXTURE_WRAP_S,
             gl.CLAMP_TO_EDGE
         );
-
 
         gl.texParameteri(
             gl.TEXTURE_2D,
@@ -1320,23 +1185,19 @@ image.onload =
             gl.CLAMP_TO_EDGE
         );
 
-
         gl.activeTexture(
             gl.TEXTURE0
         );
-
 
         gl.bindTexture(
             gl.TEXTURE_2D,
             texture
         );
 
-
         gl.uniform1i(
             U.image,
             0
         );
-
 
         gl.uniform1f(
             U.imageAspect,
@@ -1344,9 +1205,7 @@ image.onload =
             image.height
         );
 
-
         resize();
-
 
         requestAnimationFrame(
             render
@@ -1358,7 +1217,7 @@ image.onerror =
     function() {
 
         showError(
-            "lockscreen.png could not be loaded."
+            "Could not load lockscreen.png"
         );
     };
 
@@ -1386,27 +1245,21 @@ let sensorReady = false;
    DEVICE ORIENTATION
    ========================================================= */
 
-function handleOrientation(
-    event
-) {
+function handleOrientation(event) {
 
     if (
         event.gamma === null ||
         event.gamma === undefined
     ) {
-
         return;
     }
-
 
     rawTilt =
         event.gamma;
 
-
     targetTilt =
         rawTilt -
         zeroTilt;
-
 
     targetTilt =
         Math.max(
@@ -1416,7 +1269,6 @@ function handleOrientation(
                 targetTilt
             )
         );
-
 
     sensorReady =
         true;
@@ -1431,26 +1283,18 @@ function calibrate() {
 
     if (!sensorReady) {
 
-        zeroTilt =
-            0;
-
-        targetTilt =
-            0;
-
-        currentTilt =
-            0;
+        zeroTilt = 0;
+        targetTilt = 0;
+        currentTilt = 0;
 
         return;
     }
 
-
     zeroTilt =
         rawTilt;
 
-
     targetTilt =
         0;
-
 
     currentTilt =
         0;
@@ -1466,12 +1310,10 @@ const permission =
         "permission"
     );
 
-
 const startButton =
     document.getElementById(
         "start"
     );
-
 
 const recalibrateButton =
     document.getElementById(
@@ -1498,7 +1340,6 @@ startButton.addEventListener(
                     await DeviceOrientationEvent
                         .requestPermission();
 
-
                 if (
                     result !==
                     "granted"
@@ -1520,10 +1361,6 @@ startButton.addEventListener(
             );
 
 
-            /*
-               Hide CTA.
-            */
-
             permission.style.display =
                 "none";
 
@@ -1532,30 +1369,18 @@ startButton.addEventListener(
                 "block";
 
 
-            /*
-               Let iPhone deliver the first
-               sensor values before calibration.
-            */
-
             setTimeout(
-                function() {
-
-                    calibrate();
-
-                },
+                calibrate,
                 700
             );
 
-        }
-
-        catch (error) {
+        } catch (error) {
 
             showError(
                 error.message ||
                 String(error)
             );
         }
-
     }
 );
 
@@ -1566,16 +1391,12 @@ startButton.addEventListener(
 
 recalibrateButton.addEventListener(
     "click",
-    function() {
-
-        calibrate();
-
-    }
+    calibrate
 );
 
 
 /* =========================================================
-   DESKTOP TESTING
+   DESKTOP TEST
    ========================================================= */
 
 let dragging = false;
@@ -1586,7 +1407,6 @@ window.addEventListener(
     function() {
 
         dragging = true;
-
     }
 );
 
@@ -1596,7 +1416,6 @@ window.addEventListener(
     function() {
 
         dragging = false;
-
     }
 );
 
@@ -1606,7 +1425,6 @@ window.addEventListener(
     function() {
 
         dragging = false;
-
     }
 );
 
@@ -1619,11 +1437,9 @@ window.addEventListener(
             return;
         }
 
-
         const x =
             event.clientX /
             window.innerWidth;
-
 
         targetTilt =
             (x - 0.5) *
@@ -1644,20 +1460,17 @@ function resize() {
             2
         );
 
-
     canvas.width =
         Math.round(
             window.innerWidth *
             dpr
         );
 
-
     canvas.height =
         Math.round(
             window.innerHeight *
             dpr
         );
-
 
     gl.viewport(
         0,
@@ -1666,13 +1479,11 @@ function resize() {
         canvas.height
     );
 
-
     gl.uniform1f(
         U.aspect,
         window.innerWidth /
         window.innerHeight
     );
-
 
     gl.uniform2f(
         U.resolution,
@@ -1695,21 +1506,15 @@ window.addEventListener(
 function render() {
 
     /*
-       Smooth physical response.
+       Smooth response.
     */
 
     currentTilt +=
         (
             targetTilt -
             currentTilt
-        )
-        *
-        0.085;
+        ) * 0.085;
 
-
-    /*
-       Degrees → radians.
-    */
 
     const angle =
         currentTilt *
@@ -1718,8 +1523,11 @@ function render() {
 
 
     /*
-       Right tilt → LEFT hinge.
-       Left tilt  → RIGHT hinge.
+       Right tilt:
+           LEFT hinge
+
+       Left tilt:
+           RIGHT hinge
     */
 
     const hinge =
@@ -1729,43 +1537,34 @@ function render() {
 
 
     /*
-       -----------------------------------------------------
-       PHYSICAL PARAMETERS
-       -----------------------------------------------------
-
-       These now correspond much more closely to the
-       Android reference.
-       */
+       Physical parameters from the
+       reference implementation.
+    */
 
     gl.uniform1f(
         U.screenWidthMm,
         70.0
     );
 
-
     gl.uniform1f(
         U.viewDistanceMm,
         320.0
     );
-
 
     gl.uniform1f(
         U.blurPerMm,
         0.55
     );
 
-
     gl.uniform1f(
         U.maxBlurPx,
         24.0
     );
 
-
     gl.uniform1f(
         U.darkenPerMm,
         0.012
     );
-
 
     gl.uniform1f(
         U.maxDarken,
@@ -1773,25 +1572,16 @@ function render() {
     );
 
 
-    /*
-       Fold state.
-    */
-
     gl.uniform1f(
         U.angle,
         angle
     );
-
 
     gl.uniform1f(
         U.hinge,
         hinge
     );
 
-
-    /*
-       Render.
-    */
 
     gl.drawArrays(
         gl.TRIANGLES,
@@ -1824,7 +1614,6 @@ window.addEventListener(
                 event.message
             );
         }
-
     }
 );
 
