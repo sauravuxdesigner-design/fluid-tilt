@@ -14,6 +14,12 @@
       background: #000;
     }
 
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
     #orb {
       position: absolute;
 
@@ -23,24 +29,35 @@
       left: 50%;
       top: 50%;
 
-      transform: translate(-50%, -50%);
-
       border-radius: 50%;
 
-      background: radial-gradient(
-        circle at 40% 40%,
-        #ffffff 0%,
-        #8ee7ff 12%,
-        #168cff 35%,
-        #0047ff 55%,
-        transparent 75%
-      );
+      background:
+        radial-gradient(
+          circle at 35% 30%,
+          #ffffff 0%,
+          #c9f6ff 8%,
+          #72dfff 20%,
+          #168cff 45%,
+          #0047ff 65%,
+          rgba(0, 71, 255, 0) 78%
+        );
 
-      filter: blur(25px);
+      filter: blur(18px);
+
+      transform:
+        translate(-50%, -50%)
+        scaleX(1)
+        scaleY(1)
+        rotate(0deg);
+
+      will-change: transform;
+
+      transition: none;
     }
 
     #motionButton {
       position: fixed;
+
       z-index: 10;
 
       top: 30px;
@@ -51,16 +68,27 @@
       padding: 12px 20px;
 
       border: none;
-      border-radius: 20px;
+      border-radius: 30px;
+
+      background: white;
+      color: black;
 
       font-size: 16px;
+
+      cursor: pointer;
+    }
+
+    #motionButton:active {
+      transform: translateX(-50%) scale(0.96);
     }
   </style>
 </head>
 
 <body>
 
-  <button id="motionButton">Enable Motion</button>
+  <button id="motionButton">
+    Enable Motion
+  </button>
 
   <div id="orb"></div>
 
@@ -71,6 +99,19 @@
     const button = document.getElementById("motionButton");
 
 
+    let targetX = 0;
+    let currentX = 0;
+
+    let targetStretch = 1;
+    let currentStretch = 1;
+
+    let targetSquash = 1;
+    let currentSquash = 1;
+
+    let targetRotation = 0;
+    let currentRotation = 0;
+
+
     button.addEventListener("click", async () => {
 
       if (
@@ -78,18 +119,28 @@
         typeof DeviceOrientationEvent.requestPermission === "function"
       ) {
 
-        const permission =
-          await DeviceOrientationEvent.requestPermission();
+        try {
 
-        if (permission === "granted") {
+          const permission =
+            await DeviceOrientationEvent.requestPermission();
 
-          startMotion();
+          if (permission === "granted") {
 
-          button.textContent = "Motion Enabled";
+            startMotion();
 
-        } else {
+            button.textContent = "Motion Enabled";
 
-          button.textContent = "Permission Denied";
+          } else {
+
+            button.textContent = "Permission Denied";
+
+          }
+
+        } catch (error) {
+
+          console.error(error);
+
+          button.textContent = "Motion Error";
 
         }
 
@@ -112,19 +163,96 @@
 
           const tilt = event.gamma || 0;
 
+          /*
+            Convert phone tilt
+            into a smooth -1 → 1 value
+          */
+
           const movement =
             Math.max(
               -1,
               Math.min(1, tilt / 30)
             );
 
-          const x = movement * 300;
 
-          orb.style.transform =
-            `translate(calc(-50% + ${x}px), -50%)`;
+          /*
+            Position
+          */
+
+          targetX = movement * 260;
+
+
+          /*
+            Fluid stretching
+
+            More tilt =
+            more stretching
+          */
+
+          const intensity = Math.abs(movement);
+
+          targetStretch =
+            1 + intensity * 0.55;
+
+          targetSquash =
+            1 - intensity * 0.22;
+
+
+          /*
+            Rotate slightly
+          */
+
+          targetRotation =
+            movement * 12;
 
         }
       );
+
+
+      animate();
+
+    }
+
+
+    function animate() {
+
+      /*
+        Elastic smoothing
+
+        Smaller number =
+        more liquid / delayed
+        movement
+      */
+
+      currentX +=
+        (targetX - currentX) * 0.08;
+
+      currentStretch +=
+        (targetStretch - currentStretch) * 0.08;
+
+      currentSquash +=
+        (targetSquash - currentSquash) * 0.08;
+
+      currentRotation +=
+        (targetRotation - currentRotation) * 0.08;
+
+
+      /*
+        Apply the deformation
+      */
+
+      orb.style.transform = `
+        translate(
+          calc(-50% + ${currentX}px),
+          -50%
+        )
+        scaleX(${currentStretch})
+        scaleY(${currentSquash})
+        rotate(${currentRotation}deg)
+      `;
+
+
+      requestAnimationFrame(animate);
 
     }
 
