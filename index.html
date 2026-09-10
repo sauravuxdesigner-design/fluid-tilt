@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 
@@ -7,16 +8,13 @@
 
 <meta
     name="viewport"
-    content="
-        width=device-width,
-        initial-scale=1.0,
-        maximum-scale=1.0,
-        user-scalable=no
-    "
+    content="width=device-width,
+             initial-scale=1.0,
+             maximum-scale=1.0,
+             user-scalable=no"
 >
 
 <title>DuoFold Lock Screen</title>
-
 
 <style>
 
@@ -51,8 +49,7 @@ body {
 
     position: fixed;
 
-    left: 0;
-    top: 0;
+    inset: 0;
 
     width: 100vw;
     height: 100vh;
@@ -63,7 +60,6 @@ body {
 
 }
 
-
 #motionButton {
 
     position: fixed;
@@ -71,23 +67,17 @@ body {
     left: 50%;
     bottom: 28px;
 
-    transform:
-        translateX(-50%);
+    transform: translateX(-50%);
 
-    z-index: 10;
+    padding: 13px 22px;
 
-    padding:
-        13px 21px;
+    border: 1px solid
+        rgba(255,255,255,.18);
 
-    border:
-        1px solid
-        rgba(255,255,255,.16);
-
-    border-radius:
-        999px;
+    border-radius: 999px;
 
     background:
-        rgba(0,0,0,.45);
+        rgba(0,0,0,.48);
 
     color:
         rgba(255,255,255,.85);
@@ -98,11 +88,15 @@ body {
 
     font-size: 12px;
 
+    letter-spacing: .02em;
+
     backdrop-filter:
         blur(18px);
 
     -webkit-backdrop-filter:
         blur(18px);
+
+    z-index: 10;
 
     cursor: pointer;
 
@@ -114,7 +108,6 @@ body {
 
 }
 
-
 #error {
 
     position: fixed;
@@ -124,13 +117,14 @@ body {
     display: none;
 
     align-items: center;
+
     justify-content: center;
 
     padding: 30px;
 
-    background: #000;
+    color: white;
 
-    color: #fff;
+    background: #000;
 
     font-family:
         Arial,
@@ -138,11 +132,11 @@ body {
 
     font-size: 14px;
 
-    line-height: 1.5;
+    line-height: 1.6;
 
     text-align: center;
 
-    z-index: 50;
+    z-index: 20;
 
 }
 
@@ -165,119 +159,76 @@ body {
 <div id="error"></div>
 
 
-
 <script>
 
 
 /*
-================================================================
-IMAGE
-================================================================
+==============================================================
+CONFIGURATION
+==============================================================
+*/
 
-Keep this file beside index.html:
 
+/*
     index.html
     lockscreen.png
 
-================================================================
+    must be in the same folder.
 */
 
 const IMAGE_URL =
     "./lockscreen.png";
 
 
-
-/*
-================================================================
-CONFIGURATION
-================================================================
-*/
-
 const CONFIG = {
 
     /*
-    Maximum physical tilt used
-    by the visual effect.
+    Original DuoFold-style parameters.
     */
 
-    maxTilt: 35.0,
+    eyeDistance:
+        320.0,
+
+    blurSpread:
+        0.55,
+
+    darkening:
+        0.012,
+
+    maxBlur:
+        24.0,
+
+    maxTilt:
+        45.0,
 
 
     /*
-    Motion sensitivity.
-
-    Increase to 1.2 / 1.4 if the phone
-    needs more movement.
+    Device motion sensitivity.
     */
 
-    motionSensitivity: 1.0,
+    motionSensitivity:
+        1.0,
 
 
     /*
-    Smoothness.
-
-    Lower = smoother.
-    Higher = more responsive.
+    Smooth physical movement.
     */
 
-    smoothness: 0.115,
+    spring:
+        0.16,
 
-
-    /*
-    Soft spring.
-    */
-
-    spring: 0.12,
-
-
-    /*
-    Motion damping.
-    */
-
-    damping: 0.80,
-
-
-    /*
-    Maximum image displacement.
-
-    IMPORTANT:
-
-    This is deliberately limited so
-    the image never stretches too much.
-    */
-
-    maxDistortion: 0.085,
-
-
-    /*
-    Maximum blur in pixels.
-    */
-
-    maxBlur: 8.0,
-
-
-    /*
-    How quickly blur grows.
-    */
-
-    blurStrength: 0.42,
-
-
-    /*
-    Subtle optical shading.
-    */
-
-    shading: 0.075
+    friction:
+        0.78
 
 };
 
 
-
 /*
-================================================================
-WEBGL
-================================================================
+==============================================================
+CANVAS / WEBGL
+==============================================================
 */
+
 
 const canvas =
     document.getElementById(
@@ -289,13 +240,9 @@ const gl =
     canvas.getContext(
         "webgl",
         {
-
             antialias: false,
-
             alpha: false,
-
             premultipliedAlpha: false
-
         }
     );
 
@@ -303,22 +250,22 @@ const gl =
 if (!gl) {
 
     showError(
-        "WebGL is not supported by this browser."
+        "WebGL is not supported in this browser."
     );
 
     throw new Error(
-        "WebGL unavailable."
+        "WebGL unavailable"
     );
 
 }
 
 
-
 /*
-================================================================
+==============================================================
 VERTEX SHADER
-================================================================
+==============================================================
 */
+
 
 const vertexShaderSource = `
 
@@ -329,8 +276,7 @@ varying vec2 vUV;
 void main() {
 
     vUV =
-        aPosition *
-        0.5 +
+        aPosition * 0.5 +
         0.5;
 
     gl_Position =
@@ -345,32 +291,25 @@ void main() {
 `;
 
 
-
 /*
-================================================================
+==============================================================
 FRAGMENT SHADER
-================================================================
+==============================================================
 
-This is intentionally NOT using a hard physical fold.
+Continuous version.
 
-Instead it creates a soft flexible-screen
-distortion similar to the reference:
+There is deliberately NO visual threshold.
 
-    tiny tilt
-        ↓
-    tiny displacement
+At even a tiny non-zero tilt:
 
-    larger tilt
-        ↓
-    larger displacement
+    perspective changes
+    projection changes
+    blur begins
+    shading begins
 
-but:
-
-    image never gets pulled completely
-    off-screen.
-
-================================================================
+==============================================================
 */
+
 
 const fragmentShaderSource = `
 
@@ -379,27 +318,19 @@ precision highp float;
 
 uniform sampler2D uImage;
 
-
 uniform vec2 uResolution;
-
 
 uniform vec2 uImageResolution;
 
-
 uniform float uTilt;
 
+uniform float uEyeDistance;
 
-uniform float uMaxDistortion;
+uniform float uBlurSpread;
 
+uniform float uDarkening;
 
 uniform float uMaxBlur;
-
-
-uniform float uBlurStrength;
-
-
-uniform float uShading;
-
 
 uniform float uTime;
 
@@ -407,51 +338,54 @@ uniform float uTime;
 varying vec2 vUV;
 
 
+const float TWO_PI =
+    6.28318530717958647692;
+
+
+const float GOLDEN_ANGLE =
+    2.39996322972865332;
+
 
 /*
-==============================================================
-RANDOM
-==============================================================
+--------------------------------------------------------------
+Random
+--------------------------------------------------------------
 */
+
 
 float random(
     vec2 p
 ) {
 
     return fract(
-
         sin(
-
             dot(
-
                 p,
-
                 vec2(
                     12.9898,
                     78.233
                 )
-
             )
-
         )
         *
         43758.5453
-
     );
 
 }
 
 
-
 /*
-==============================================================
-COVER UV
-==============================================================
+--------------------------------------------------------------
+Cover image
+--------------------------------------------------------------
 
-Keeps the image filling the entire screen.
+Equivalent to:
 
-==============================================================
+background-size: cover
+
+--------------------------------------------------------------
 */
+
 
 vec2 coverUV(
     vec2 uv
@@ -478,13 +412,8 @@ vec2 coverUV(
 
 
         uv.y =
-            (
-                uv.y -
-                0.5
-            )
-            *
-            scale
-            +
+            (uv.y - 0.5) *
+            scale +
             0.5;
 
     }
@@ -497,13 +426,8 @@ vec2 coverUV(
 
 
         uv.x =
-            (
-                uv.x -
-                0.5
-            )
-            *
-            scale
-            +
+            (uv.x - 0.5) *
+            scale +
             0.5;
 
     }
@@ -514,30 +438,40 @@ vec2 coverUV(
 }
 
 
-
 /*
-==============================================================
-SAFE IMAGE SAMPLE
-==============================================================
-
-The important difference:
-
-UV is clamped rather than allowing
-the image to disappear.
-
-==============================================================
+--------------------------------------------------------------
+Image sampling
+--------------------------------------------------------------
 */
 
+
 vec3 sampleImage(
-    vec2 uv
+    vec2 pixel
 ) {
 
+    vec2 uv =
+        pixel /
+        uResolution;
+
+
     uv =
-        clamp(
-            uv,
-            vec2(0.001),
-            vec2(0.999)
+        coverUV(
+            uv
         );
+
+
+    if (
+        uv.x < 0.0 ||
+        uv.x > 1.0 ||
+        uv.y < 0.0 ||
+        uv.y > 1.0
+    ) {
+
+        return vec3(
+            0.0
+        );
+
+    }
 
 
     return texture2D(
@@ -548,123 +482,169 @@ vec3 sampleImage(
 }
 
 
-
 /*
-==============================================================
-SMOOTH BLUR
-==============================================================
-
-Small blur from the first movement.
-
-Only 16 samples are used so the
-browser remains responsive.
-
-==============================================================
+--------------------------------------------------------------
+Continuous Vogel disk blur
+--------------------------------------------------------------
 */
 
-vec3 blurImage(
-    vec2 uv,
-    vec2 blurDirection,
+
+vec3 vogelBlur(
+    vec2 point,
     float radius
 ) {
+
+
+    /*
+    At zero radius:
+
+        direct sample
+
+    */
 
     if (
         radius <= 0.01
     ) {
 
         return sampleImage(
-            uv
+            point
         );
 
     }
 
 
-    vec3 result =
-        vec3(0.0);
+    vec3 total =
+        vec3(
+            0.0
+        );
 
 
-    float total =
+    float weightTotal =
         0.0;
 
 
     /*
-    Center.
+    Number of samples increases
+    continuously with blur.
     */
 
-    result +=
-        sampleImage(
-            uv
+    float taps =
+        clamp(
+            6.0 +
+            radius * 1.4,
+
+            6.0,
+            32.0
+        );
+
+
+    float rotation =
+        random(
+            point
         )
         *
-        0.25;
+        TWO_PI;
 
-    total +=
-        0.25;
-
-
-    /*
-    Symmetrical samples.
-
-    This prevents the image from
-    appearing to smear in only one
-    direction.
-    */
 
     for (
-        int i = 1;
-        i <= 7;
+        int i = 0;
+        i < 32;
         i++
     ) {
 
-        float fi =
+
+        float index =
             float(i);
 
 
-        float weight =
-            1.0 /
-            (
-                1.0 +
-                fi *
-                0.65
+        float enabled =
+            1.0 -
+            step(
+                taps,
+                index
             );
 
 
-        vec2 offset =
-            blurDirection *
+        /*
+        Vogel disk radius.
+        */
+
+        float r =
             radius *
-            fi /
-            7.0;
+            sqrt(
+                (
+                    index +
+                    0.5
+                )
+                /
+                taps
+            );
 
 
-        result +=
-            sampleImage(
-                uv + offset
+        float angle =
+            index *
+            GOLDEN_ANGLE +
+            rotation;
+
+
+        vec2 offset =
+            vec2(
+                cos(angle),
+                sin(angle)
             )
             *
-            weight;
+            r;
 
 
-        result +=
+        /*
+        Center samples are weighted
+        slightly more strongly.
+        */
+
+        float normalized =
+            r /
+            max(
+                radius,
+                0.001
+            );
+
+
+        float weight =
+            mix(
+                1.35,
+                0.65,
+                normalized
+            );
+
+
+        vec3 color =
             sampleImage(
-                uv - offset
-            )
-            *
-            weight;
+                point +
+                offset
+            );
 
 
         total +=
+            color *
             weight *
-            2.0;
+            enabled;
+
+
+        weightTotal +=
+            weight *
+            enabled;
 
     }
 
 
     return
-        result /
-        total;
+        total /
+        max(
+            weightTotal,
+            0.001
+        );
 
 }
-
 
 
 /*
@@ -673,62 +653,324 @@ MAIN
 ==============================================================
 */
 
+
 void main() {
 
 
     /*
     ----------------------------------------------------------
-    Original UV
+    Current screen pixel
     ----------------------------------------------------------
     */
 
-    vec2 uv =
-        vUV;
+    vec2 pixel =
+        vUV *
+        uResolution;
 
 
     /*
     ----------------------------------------------------------
     Tilt
 
-    The effect starts immediately.
+    IMPORTANT:
 
-    No threshold.
+    No threshold is applied.
+
+    The effect starts immediately
+    at any non-zero tilt.
     ----------------------------------------------------------
     */
 
-    float tilt =
-        clamp(
-            uTilt,
-            -35.0,
-            35.0
-        );
-
-
-    float signedAngle =
+    float signedTilt =
         radians(
-            tilt
+            clamp(
+                uTilt,
+                -45.0,
+                45.0
+            )
         );
 
 
     float angle =
         abs(
-            signedAngle
+            signedTilt
         );
 
 
     /*
     ----------------------------------------------------------
-    Normalized tilt
+    At exactly zero degrees, show the original image.
+    ----------------------------------------------------------
+    */
 
-        0 = flat
-        1 = maximum tilt
+    if (
+        angle < 0.000001
+    ) {
+
+        gl_FragColor =
+            vec4(
+                sampleImage(
+                    pixel
+                ),
+                1.0
+            );
+
+        return;
+
+    }
+
+
+    /*
+    ----------------------------------------------------------
+    Hinge
+    ----------------------------------------------------------
+    */
+
+    float hingeX;
+
+    float direction;
+
+
+    if (
+        signedTilt > 0.0
+    ) {
+
+        /*
+        Positive tilt:
+        fold from right edge.
+        */
+
+        hingeX =
+            uResolution.x;
+
+        direction =
+            -1.0;
+
+    }
+
+    else {
+
+        /*
+        Negative tilt:
+        fold from left edge.
+        */
+
+        hingeX =
+            0.0;
+
+        direction =
+            1.0;
+
+    }
+
+
+    /*
+    ----------------------------------------------------------
+    Distance from hinge
+    ----------------------------------------------------------
+    */
+
+    float distanceFromHinge =
+        abs(
+            pixel.x -
+            hingeX
+        );
+
+
+    /*
+    ----------------------------------------------------------
+    Trigonometry
+    ----------------------------------------------------------
+    */
+
+    float sinTilt =
+        sin(
+            angle
+        );
+
+
+    float cosTilt =
+        cos(
+            angle
+        );
+
+
+    /*
+    ----------------------------------------------------------
+    Tilted glass position
+    ----------------------------------------------------------
+    */
+
+    float glassX =
+        hingeX +
+
+        direction *
+        distanceFromHinge *
+        cosTilt;
+
+
+    vec2 glassPoint =
+        vec2(
+            glassX,
+            pixel.y
+        );
+
+
+    /*
+    ----------------------------------------------------------
+    Physical glass / screen separation
+    ----------------------------------------------------------
+    */
+
+    float gap =
+        distanceFromHinge *
+        sinTilt;
+
+
+    /*
+    ----------------------------------------------------------
+    Stationary eye
+    ----------------------------------------------------------
+    */
+
+    vec2 eye =
+        uResolution *
+        0.5;
+
+
+    /*
+    ----------------------------------------------------------
+    Perspective projection
+
+    Ray:
+
+        eye → glass
+
+    projected onto:
+
+        original lockscreen
+    ----------------------------------------------------------
+    */
+
+    float depth =
+        max(
+            uEyeDistance -
+            gap,
+
+            1.0
+        );
+
+
+    float rayT =
+        uEyeDistance /
+        depth;
+
+
+    vec2 projected =
+        eye +
+
+        (
+            glassPoint -
+            eye
+        )
+        *
+        rayT;
+
+
+    /*
+    ----------------------------------------------------------
+    CONTINUOUS DISTORTION
+
+    This explicitly makes distortion
+    begin from the first movement.
     ----------------------------------------------------------
     */
 
     float normalizedTilt =
+        angle /
+        radians(
+            45.0
+        );
+
+
+    float distortion =
+        sinTilt *
+        0.85;
+
+
+    vec2 fromCenter =
+        projected -
+        eye;
+
+
+    projected +=
+        fromCenter *
+        distortion *
+        0.035;
+
+
+    /*
+    ----------------------------------------------------------
+    CONTINUOUS BLUR
+    ----------------------------------------------------------
+
+    IMPORTANT:
+
+    Blur does NOT wait for a threshold.
+
+    Even at:
+
+        0.1°
+        0.5°
+        1°
+
+    there is already blur.
+
+    ----------------------------------------------------------
+    */
+
+    float blurRadius =
+        gap *
+        uBlurSpread;
+
+
+    /*
+    Small angle-dependent component.
+
+    This prevents the hinge region from
+    staying completely sharp during tiny tilts.
+    */
+
+    blurRadius +=
+        angle *
+        0.45;
+
+
+    blurRadius =
         clamp(
-            angle /
-            radians(35.0),
+            blurRadius,
+            0.0,
+            uMaxBlur
+        );
+
+
+    /*
+    ----------------------------------------------------------
+    Continuous darkening
+    ----------------------------------------------------------
+    */
+
+    float darkness =
+        1.0 -
+        (
+            blurRadius *
+            uDarkening
+        );
+
+
+    darkness =
+        clamp(
+            darkness,
             0.0,
             1.0
         );
@@ -736,329 +978,110 @@ void main() {
 
     /*
     ----------------------------------------------------------
-    Smooth response curve.
-
-    Starts immediately but remains
-    subtle near zero.
+    Projected image bounds
     ----------------------------------------------------------
     */
 
-    float response =
-        sin(
-            normalizedTilt *
-            1.5707963
-        );
+    if (
+        projected.x <
+            -blurRadius ||
 
+        projected.x >
+            uResolution.x +
+            blurRadius ||
 
-    /*
-    ----------------------------------------------------------
-    Centered coordinate.
+        projected.y <
+            -blurRadius ||
 
-        -1 = left
-         0 = center
-        +1 = right
-    ----------------------------------------------------------
-    */
+        projected.y >
+            uResolution.y +
+            blurRadius
+    ) {
 
-    vec2 centered =
-        uv -
-        0.5;
+        gl_FragColor =
+            vec4(
+                0.0,
+                0.0,
+                0.0,
+                1.0
+            );
 
+        return;
 
-    /*
-    ----------------------------------------------------------
-    SOFT SCREEN BEND
-    ----------------------------------------------------------
-
-    The outer portions move more than
-    the center.
-
-    This is what gives the reference
-    its curved-glass appearance.
-    ----------------------------------------------------------
-    */
-
-    float horizontalPosition =
-        centered.x *
-        2.0;
-
-
-    float distanceFromCenter =
-        abs(
-            horizontalPosition
-        );
-
-
-    /*
-    Smooth outer weighting.
-
-    Center remains stable.
-    Edges move more.
-    */
-
-    float edgeWeight =
-        smoothstep(
-            0.0,
-            1.0,
-            distanceFromCenter
-        );
-
-
-    /*
-    ----------------------------------------------------------
-    Vertical compensation
-
-    This prevents the image from looking
-    like it is simply being scaled.
-    ----------------------------------------------------------
-    */
-
-    float verticalCurve =
-        centered.y *
-        centered.y;
-
-
-    /*
-    ----------------------------------------------------------
-    Horizontal optical displacement
-    ----------------------------------------------------------
-    */
-
-    float bend =
-        horizontalPosition *
-        edgeWeight *
-        response *
-        uMaxDistortion;
-
-
-    /*
-    Tilt direction.
-    */
-
-    bend *=
-        sign(
-            signedAngle
-        );
-
-
-    /*
-    ----------------------------------------------------------
-    Perspective-like compression
-
-    Very small intentionally.
-
-    This is NOT a physical fold.
-
-    It prevents the huge stretching seen
-    in the previous version.
-    ----------------------------------------------------------
-    */
-
-    float compression =
-        1.0 -
-        (
-            response *
-            0.045
-        );
-
-
-    float newX =
-        centered.x *
-        compression;
-
-
-    /*
-    ----------------------------------------------------------
-    Apply bend
-    ----------------------------------------------------------
-    */
-
-    newX +=
-        bend;
-
-
-    /*
-    ----------------------------------------------------------
-    Subtle vertical curvature
-
-    Gives the image a glass-like
-    optical surface.
-    ----------------------------------------------------------
-    */
-
-    float verticalBend =
-        verticalCurve *
-        response *
-        0.018;
-
-
-    float newY =
-        centered.y +
-        verticalBend *
-        sign(
-            signedAngle
-        );
-
-
-    /*
-    ----------------------------------------------------------
-    Final distorted UV
-    ----------------------------------------------------------
-    */
-
-    vec2 distortedUV =
-        vec2(
-            newX,
-            newY
-        )
-        +
-        0.5;
-
-
-    /*
-    ----------------------------------------------------------
-    Keep the entire image visible.
-
-    No black gaps.
-    No disappearing image.
-    ----------------------------------------------------------
-    */
-
-    distortedUV =
-        clamp(
-            distortedUV,
-            vec2(0.001),
-            vec2(0.999)
-        );
+    }
 
 
     /*
     ----------------------------------------------------------
     Blur
-
-    Starts immediately at tiny tilt.
-
-    It remains considerably more subtle
-    than the previous version.
-    ----------------------------------------------------------
-    */
-
-    float blurAmount =
-        response *
-        uMaxBlur *
-        uBlurStrength;
-
-
-    /*
-    Slightly increase blur toward edges.
-    */
-
-    float edgeBlur =
-        mix(
-            0.35,
-            1.0,
-            edgeWeight
-        );
-
-
-    blurAmount *=
-        edgeBlur;
-
-
-    /*
-    ----------------------------------------------------------
-    Blur direction
-
-    Follow the direction of the bend.
-    ----------------------------------------------------------
-    */
-
-    vec2 blurDirection =
-        normalize(
-            vec2(
-                sign(
-                    signedAngle
-                ),
-                0.15
-            )
-        );
-
-
-    /*
-    ----------------------------------------------------------
-    Convert distorted UV to image UV.
-    ----------------------------------------------------------
-    */
-
-    vec2 imageUV =
-        coverUV(
-            distortedUV
-        );
-
-
-    /*
-    ----------------------------------------------------------
-    Blur the image.
     ----------------------------------------------------------
     */
 
     vec3 color =
-        blurImage(
-            imageUV,
-            blurDirection /
-            uResolution *
-            120.0,
-            blurAmount
+        vogelBlur(
+            projected,
+            blurRadius
         );
 
 
     /*
     ----------------------------------------------------------
-    Soft glass shading.
-
-    Very subtle.
-
-    It should never turn the screen
-    black or hide content.
+    Darken
     ----------------------------------------------------------
     */
 
-    float sideShade =
-        abs(
-            horizontalPosition
-        )
-        *
-        response
-        *
-        uShading;
-
-
     color *=
-        1.0 -
-        sideShade;
+        darkness;
 
 
     /*
     ----------------------------------------------------------
-    Tiny edge highlight
+    Fold highlight
+
+    Also begins immediately with tilt.
     ----------------------------------------------------------
     */
 
-    float highlight =
-        edgeWeight *
-        response *
-        0.025;
+    float edgeAmount =
+        smoothstep(
+            0.0,
+            radians(
+                15.0
+            ),
+            angle
+        );
+
+
+    float edgeLight =
+        edgeAmount *
+        0.055;
 
 
     color +=
         vec3(
-            highlight
+            edgeLight
         );
 
 
     /*
     ----------------------------------------------------------
-    Final output
+    Very subtle fold shading
+    ----------------------------------------------------------
+    */
+
+    float shading =
+        1.0 -
+        normalizedTilt *
+        0.10;
+
+
+    color *=
+        shading;
+
+
+    /*
+    ----------------------------------------------------------
+    Output
     ----------------------------------------------------------
     */
 
@@ -1073,12 +1096,12 @@ void main() {
 `;
 
 
-
 /*
-================================================================
-SHADER COMPILATION
-================================================================
+==============================================================
+COMPILE SHADER
+==============================================================
 */
+
 
 function compileShader(
     type,
@@ -1128,12 +1151,12 @@ function compileShader(
 }
 
 
-
 /*
-================================================================
-CREATE PROGRAM
-================================================================
+==============================================================
+PROGRAM
+==============================================================
 */
+
 
 const vertexShader =
     compileShader(
@@ -1196,12 +1219,12 @@ gl.useProgram(
 );
 
 
-
 /*
-================================================================
+==============================================================
 FULLSCREEN QUAD
-================================================================
+==============================================================
 */
+
 
 const buffer =
     gl.createBuffer();
@@ -1263,12 +1286,12 @@ gl.vertexAttribPointer(
 );
 
 
-
 /*
-================================================================
+==============================================================
 UNIFORMS
-================================================================
+==============================================================
 */
+
 
 const uniforms = {
 
@@ -1296,28 +1319,28 @@ const uniforms = {
             "uTilt"
         ),
 
-    maxDistortion:
+    eyeDistance:
         gl.getUniformLocation(
             program,
-            "uMaxDistortion"
+            "uEyeDistance"
+        ),
+
+    blurSpread:
+        gl.getUniformLocation(
+            program,
+            "uBlurSpread"
+        ),
+
+    darkening:
+        gl.getUniformLocation(
+            program,
+            "uDarkening"
         ),
 
     maxBlur:
         gl.getUniformLocation(
             program,
             "uMaxBlur"
-        ),
-
-    blurStrength:
-        gl.getUniformLocation(
-            program,
-            "uBlurStrength"
-        ),
-
-    shading:
-        gl.getUniformLocation(
-            program,
-            "uShading"
         ),
 
     time:
@@ -1329,12 +1352,68 @@ const uniforms = {
 };
 
 
+/*
+==============================================================
+IMAGE
+==============================================================
+*/
+
+
+const image =
+    new Image();
+
+
+image.crossOrigin =
+    "anonymous";
+
+
+let imageLoaded =
+    false;
+
+
+image.onload = () => {
+
+    imageLoaded =
+        true;
+
+
+    gl.uniform2f(
+
+        uniforms.imageResolution,
+
+        image.naturalWidth,
+
+        image.naturalHeight
+
+    );
+
+
+    resize();
+
+};
+
+
+image.onerror = () => {
+
+    showError(
+
+        "Unable to load lockscreen.png. Make sure the filename is exactly lockscreen.png and that it is in the same folder as index.html."
+
+    );
+
+};
+
+
+image.src =
+    IMAGE_URL;
+
 
 /*
-================================================================
+==============================================================
 TEXTURE
-================================================================
+==============================================================
 */
+
 
 const texture =
     gl.createTexture();
@@ -1401,70 +1480,12 @@ gl.uniform1i(
 );
 
 
-
 /*
-================================================================
-IMAGE
-================================================================
-*/
-
-const image =
-    new Image();
-
-
-image.crossOrigin =
-    "anonymous";
-
-
-let imageLoaded =
-    false;
-
-
-image.onload = () => {
-
-    imageLoaded =
-        true;
-
-
-    gl.uniform2f(
-
-        uniforms.imageResolution,
-
-        image.naturalWidth,
-
-        image.naturalHeight
-
-    );
-
-
-    uploadImage();
-
-    resize();
-
-};
-
-
-image.onerror = () => {
-
-    showError(
-
-        "lockscreen.png could not be loaded. Make sure index.html and lockscreen.png are in the same GitHub folder."
-
-    );
-
-};
-
-
-image.src =
-    IMAGE_URL;
-
-
-
-/*
-================================================================
+==============================================================
 UPLOAD IMAGE
-================================================================
+==============================================================
 */
+
 
 function uploadImage() {
 
@@ -1516,12 +1537,12 @@ function uploadImage() {
 }
 
 
-
 /*
-================================================================
+==============================================================
 RESIZE
-================================================================
+==============================================================
 */
+
 
 function resize() {
 
@@ -1577,6 +1598,8 @@ function resize() {
     );
 
 
+    uploadImage();
+
 }
 
 
@@ -1586,18 +1609,36 @@ window.addEventListener(
 );
 
 
-
 /*
-================================================================
-SHADER PARAMETERS
-================================================================
+==============================================================
+SET SHADER PARAMETERS
+==============================================================
 */
+
 
 gl.uniform1f(
 
-    uniforms.maxDistortion,
+    uniforms.eyeDistance,
 
-    CONFIG.maxDistortion
+    CONFIG.eyeDistance
+
+);
+
+
+gl.uniform1f(
+
+    uniforms.blurSpread,
+
+    CONFIG.blurSpread
+
+);
+
+
+gl.uniform1f(
+
+    uniforms.darkening,
+
+    CONFIG.darkening
 
 );
 
@@ -1611,30 +1652,12 @@ gl.uniform1f(
 );
 
 
-gl.uniform1f(
-
-    uniforms.blurStrength,
-
-    CONFIG.blurStrength
-
-);
-
-
-gl.uniform1f(
-
-    uniforms.shading,
-
-    CONFIG.shading
-
-);
-
-
-
 /*
-================================================================
+==============================================================
 MOTION STATE
-================================================================
+==============================================================
 */
+
 
 let targetTilt =
     0;
@@ -1648,12 +1671,12 @@ let velocity =
     0;
 
 
-
 /*
-================================================================
-MOTION CALIBRATION
-================================================================
+==============================================================
+DEVICE MOTION CALIBRATION
+==============================================================
 */
+
 
 let calibrationGamma =
     0;
@@ -1663,17 +1686,12 @@ let calibrated =
     false;
 
 
-
 /*
-================================================================
+==============================================================
 DEVICE ORIENTATION
-================================================================
-
-The first position after enabling motion
-is treated as the neutral position.
-
-================================================================
+==============================================================
 */
+
 
 function handleOrientation(
     event
@@ -1690,9 +1708,8 @@ function handleOrientation(
 
 
     /*
-    ----------------------------------------------------------
-    Calibration
-    ----------------------------------------------------------
+    First orientation becomes
+    the neutral position.
     */
 
     if (
@@ -1708,12 +1725,6 @@ function handleOrientation(
     }
 
 
-    /*
-    ----------------------------------------------------------
-    Relative motion
-    ----------------------------------------------------------
-    */
-
     let gamma =
         event.gamma -
         calibrationGamma;
@@ -1722,15 +1733,6 @@ function handleOrientation(
     gamma *=
         CONFIG.motionSensitivity;
 
-
-    /*
-    ----------------------------------------------------------
-    Limit physical movement.
-
-    The visual effect deliberately
-    stops becoming extreme after 35°.
-    ----------------------------------------------------------
-    */
 
     targetTilt =
         clamp(
@@ -1746,12 +1748,12 @@ function handleOrientation(
 }
 
 
-
 /*
-================================================================
-ENABLE MOTION
-================================================================
+==============================================================
+MOTION BUTTON
+==============================================================
 */
+
 
 const motionButton =
     document.getElementById(
@@ -1764,7 +1766,7 @@ async function enableMotion() {
     try {
 
         /*
-        iOS requires permission.
+        iOS permission.
         */
 
         if (
@@ -1836,17 +1838,20 @@ async function enableMotion() {
 
 
 motionButton.addEventListener(
+
     "click",
+
     enableMotion
+
 );
 
 
-
 /*
-================================================================
-MOUSE / TOUCH FALLBACK
-================================================================
+==============================================================
+DESKTOP / TOUCH DRAG
+==============================================================
 */
+
 
 let dragging =
     false;
@@ -1879,7 +1884,9 @@ canvas.addEventListener(
 
 
         canvas.setPointerCapture(
+
             event.pointerId
+
         );
 
     }
@@ -1912,7 +1919,7 @@ canvas.addEventListener(
 
                 dragStartTilt +
                 delta *
-                0.18,
+                0.20,
 
                 -CONFIG.maxTilt,
 
@@ -1953,12 +1960,12 @@ canvas.addEventListener(
 );
 
 
-
 /*
-================================================================
-KEYBOARD
-================================================================
+==============================================================
+KEYBOARD FALLBACK
+==============================================================
 */
+
 
 window.addEventListener(
 
@@ -1974,11 +1981,10 @@ window.addEventListener(
             targetTilt =
                 clamp(
 
-                    targetTilt - 1,
+                    targetTilt - 2,
 
-                    -CONFIG.maxTilt,
-
-                    CONFIG.maxTilt
+                    -45,
+                    45
 
                 );
 
@@ -1993,11 +1999,10 @@ window.addEventListener(
             targetTilt =
                 clamp(
 
-                    targetTilt + 1,
+                    targetTilt + 2,
 
-                    -CONFIG.maxTilt,
-
-                    CONFIG.maxTilt
+                    -45,
+                    45
 
                 );
 
@@ -2019,12 +2024,12 @@ window.addEventListener(
 );
 
 
-
 /*
-================================================================
+==============================================================
 CLAMP
-================================================================
+==============================================================
 */
+
 
 function clamp(
     value,
@@ -2046,12 +2051,18 @@ function clamp(
 }
 
 
-
 /*
-================================================================
+==============================================================
 PHYSICS
-================================================================
+==============================================================
+
+Smooth physical response.
+
+There is intentionally no minimum
+movement threshold.
+==============================================================
 */
+
 
 function updatePhysics() {
 
@@ -2060,46 +2071,34 @@ function updatePhysics() {
         currentTilt;
 
 
-    /*
-    Smooth spring.
-    */
-
     velocity +=
         difference *
         CONFIG.spring;
 
 
-    /*
-    Damping.
-    */
-
     velocity *=
-        CONFIG.damping;
+        CONFIG.friction;
 
-
-    /*
-    Position.
-    */
 
     currentTilt +=
         velocity;
 
 
     /*
-    Avoid tiny floating point movement.
+    Avoid tiny floating point drift.
     */
 
     if (
 
         Math.abs(
             velocity
-        ) < 0.00005
+        ) < 0.0001
 
         &&
 
         Math.abs(
             difference
-        ) < 0.00005
+        ) < 0.0001
 
     ) {
 
@@ -2114,14 +2113,14 @@ function updatePhysics() {
 }
 
 
-
 /*
-================================================================
-RENDER
-================================================================
+==============================================================
+RENDER LOOP
+==============================================================
 */
 
-const startTime =
+
+let startTime =
     performance.now();
 
 
@@ -2187,12 +2186,12 @@ function render(
 }
 
 
-
 /*
-================================================================
+==============================================================
 ERROR
-================================================================
+==============================================================
 */
+
 
 function showError(
     message
@@ -2214,12 +2213,12 @@ function showError(
 }
 
 
-
 /*
-================================================================
+==============================================================
 START
-================================================================
+==============================================================
 */
+
 
 resize();
 
@@ -2228,8 +2227,10 @@ requestAnimationFrame(
     render
 );
 
+
 </script>
 
 </body>
 
 </html>
+```
