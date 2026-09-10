@@ -5,19 +5,16 @@
 
 <meta
   name="viewport"
-  content="
-    width=device-width,
-    initial-scale=1,
-    maximum-scale=1,
-    user-scalable=no,
-    viewport-fit=cover
-  "
+  content="width=device-width,
+           initial-scale=1,
+           maximum-scale=1,
+           user-scalable=no,
+           viewport-fit=cover"
 >
 
-<title>Duo Fold</title>
+<title>DuoFold Reference</title>
 
 <style>
-
 * {
   box-sizing: border-box;
 }
@@ -28,128 +25,50 @@ body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-
   background: #000;
-
-  touch-action: none;
-}
-
-canvas {
-  position: fixed;
-
-  inset: 0;
-
-  width: 100%;
-  height: 100%;
-
-  display: block;
-}
-
-
-/* ---------------------------------------------------------
-   Permission
---------------------------------------------------------- */
-
-#permission {
-
-  position: fixed;
-
-  inset: 0;
-
-  z-index: 20;
-
-  display: flex;
-
-  align-items: center;
-  justify-content: center;
-
-  background: #000;
-
-  color: #fff;
-
   font-family:
     -apple-system,
     BlinkMacSystemFont,
     "SF Pro Display",
     sans-serif;
-
-  text-align: center;
 }
 
-
-#start {
-
-  border: 0;
-
-  padding: 15px 25px;
-
-  border-radius: 999px;
-
-  background: #fff;
-
-  color: #000;
-
-  font-size: 16px;
-
-  font-weight: 600;
-
+canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
 }
-
-
-.permission-text {
-
-  margin-top: 14px;
-
-  opacity: .5;
-
-  font-size: 13px;
-
-}
-
 
 /* ---------------------------------------------------------
-   Recalibrate
+   Controls
 --------------------------------------------------------- */
 
-#recalibrate {
-
+#ui {
   position: fixed;
 
-  left: 50%;
+  left: 14px;
+  right: 14px;
 
   bottom:
     calc(
-      20px +
+      14px +
       env(safe-area-inset-bottom)
     );
 
-  transform:
-    translateX(-50%);
-
   z-index: 10;
 
-  display: none;
+  padding: 14px 16px;
 
-  border: 0;
-
-  border-radius: 999px;
-
-  padding: 9px 16px;
-
-  color:
-    rgba(
-      255,
-      255,
-      255,
-      .8
-    );
+  border-radius: 20px;
 
   background:
     rgba(
-      255,
-      255,
-      255,
-      .12
+      20,
+      20,
+      22,
+      .76
     );
 
   backdrop-filter:
@@ -158,54 +77,97 @@ canvas {
   -webkit-backdrop-filter:
     blur(20px);
 
-  font-family:
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
-
-  font-size: 12px;
-
+  color: #fff;
 }
 
+.row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
 
-/* ---------------------------------------------------------
-   Error
---------------------------------------------------------- */
+button {
+  border: 0;
 
-#error {
+  border-radius: 999px;
 
-  position: fixed;
-
-  left: 20px;
-  right: 20px;
-  top: 20px;
-
-  z-index: 100;
-
-  display: none;
-
-  padding: 14px;
-
-  border-radius: 12px;
+  padding: 9px 13px;
 
   background:
     rgba(
       255,
-      0,
-      0,
-      .85
+      255,
+      255,
+      .13
     );
 
-  color: white;
+  color: #fff;
 
-  font-family: monospace;
+  font-size: 13px;
 
-  font-size: 12px;
-
-  white-space: pre-wrap;
-
+  white-space: nowrap;
 }
 
+input[type="range"] {
+  width: 100%;
+}
+
+#value {
+  width: 58px;
+
+  text-align: right;
+
+  font-size: 13px;
+
+  font-variant-numeric:
+    tabular-nums;
+}
+
+.small {
+  margin-top: 9px;
+
+  font-size: 11px;
+
+  line-height: 1.4;
+
+  opacity: .55;
+}
+
+#picker {
+  display: none;
+}
+
+
+/* ---------------------------------------------------------
+   Motion permission
+--------------------------------------------------------- */
+
+#permission {
+  position: fixed;
+
+  inset: 0;
+
+  z-index: 20;
+
+  display: none;
+
+  align-items: center;
+  justify-content: center;
+
+  background: #000;
+}
+
+#motionBtn {
+  padding: 15px 23px;
+
+  background: #fff;
+
+  color: #000;
+
+  font-size: 16px;
+
+  font-weight: 600;
+}
 </style>
 </head>
 
@@ -217,27 +179,75 @@ canvas {
 
 <div id="permission">
 
-  <div>
-
-    <button id="start">
-      Enable Motion
-    </button>
-
-    <div class="permission-text">
-      Allow motion access to control the fold.
-    </div>
-
-  </div>
+  <button id="motionBtn">
+    Enable Motion
+  </button>
 
 </div>
 
 
-<button id="recalibrate">
-  Recalibrate
-</button>
+<div id="ui">
+
+  <div class="row">
+
+    <button id="minus">
+      −
+    </button>
+
+    <input
+      id="slider"
+      type="range"
+      min="-45"
+      max="45"
+      step="0.1"
+      value="0"
+    >
+
+    <button id="plus">
+      +
+    </button>
+
+    <span id="value">
+      0°
+    </span>
+
+  </div>
 
 
-<div id="error"></div>
+  <div
+    class="row"
+    style="margin-top:9px"
+  >
+
+    <button id="sensor">
+      Sensor
+    </button>
+
+    <button id="reset">
+      Recalibrate
+    </button>
+
+    <button id="choose">
+      Choose image
+    </button>
+
+    <input
+      id="picker"
+      type="file"
+      accept="image/*"
+    >
+
+  </div>
+
+
+  <div class="small">
+    DuoFold reference model ·
+    −45° left hinge ·
+    +45° right hinge ·
+    320 / 0.55 / 0.012
+  </div>
+
+</div>
 
 
 <script>
@@ -264,11 +274,9 @@ const gl =
 
 
 if (!gl) {
-
   throw new Error(
-    "WebGL is not available."
+    "WebGL is unavailable."
   );
-
 }
 
 
@@ -276,7 +284,7 @@ if (!gl) {
    VERTEX SHADER
 ========================================================= */
 
-const vertexSource = `
+const vertexShaderSource = `
 
 attribute vec2 a_position;
 
@@ -304,14 +312,15 @@ void main() {
 
 /* =========================================================
    FRAGMENT SHADER
+   Reference DuoFold model
 ========================================================= */
 
-const fragmentSource = `
+const fragmentShaderSource = `
 
 precision highp float;
 
 
-uniform sampler2D u_image;
+uniform sampler2D u_texture;
 
 uniform vec2 u_resolution;
 
@@ -330,15 +339,15 @@ varying vec2 v_uv;
 
 
 const float GOLDEN_ANGLE =
-  2.399963229728653;
+  2.39996322972865332;
 
 const float TWO_PI =
-  6.283185307179586;
+  6.28318530717958648;
 
 
-/* =========================================================
-   IMAGE MAPPING
-========================================================= */
+/* ---------------------------------------------------------
+   Map screen coordinates into the lockscreen image.
+--------------------------------------------------------- */
 
 vec2 imageUV(
   vec2 p
@@ -355,7 +364,7 @@ vec2 imageUV(
 
 
   /*
-   * Cover the complete phone screen.
+   * Cover the entire screen.
    */
 
   if (
@@ -400,62 +409,127 @@ vec2 imageUV(
   }
 
 
-  return clamp(
-    uv,
-    vec2(0.0),
-    vec2(1.0)
-  );
+  return uv;
 
 }
 
 
-/* =========================================================
-   IMAGE SAMPLE
-========================================================= */
+/* ---------------------------------------------------------
+   Content sample
+--------------------------------------------------------- */
 
-vec4 sampleImage(
+vec4 content(
   vec2 p
 ) {
 
-  vec2 safe =
-    clamp(
-      p,
-      vec2(0.0),
-      u_resolution
+  vec2 uv =
+    imageUV(
+      p
     );
 
 
   return texture2D(
-    u_image,
-    imageUV(safe)
+    u_texture,
+    uv
   );
 
 }
 
 
-/* =========================================================
-   DUO FRONT-PLANE SAMPLE
-========================================================= */
+/* ---------------------------------------------------------
+   Main
+--------------------------------------------------------- */
 
-vec3 duoSample(
-  vec2 fragCoord,
-  float hingeX,
-  float side,
-  float tilt,
-  float eyeDistance,
-  float blurSpread,
-  float darkening
-) {
+void main() {
 
   vec2 size =
     u_resolution;
 
 
+  vec2 fragCoord =
+    v_uv *
+    size;
+
+
   /*
-   * Distance from the hinge.
+   * Reference:
    *
-   * This is the same fundamental measurement
-   * used by the reference implementation.
+   * tilt is absolute magnitude.
+   */
+
+  float tilt =
+    radians(
+      clamp(
+        abs(
+          u_tiltDegrees
+        ),
+        0.0,
+        45.0
+      )
+    );
+
+
+  /*
+   * Flat screen.
+   */
+
+  if (
+    tilt <
+    0.00001
+  ) {
+
+    gl_FragColor =
+      content(
+        fragCoord
+      );
+
+    return;
+
+  }
+
+
+  /* =======================================================
+     HINGE
+  ======================================================= */
+
+  /*
+   * Positive tilt:
+   * RIGHT hinge.
+   *
+   * Negative tilt:
+   * LEFT hinge.
+   */
+
+  float isRight =
+    step(
+      0.0,
+      u_tiltDegrees
+    );
+
+
+  float hingeX =
+    mix(
+      0.0,
+      size.x,
+      isRight
+    );
+
+
+  /*
+   * Direction across the glass,
+   * away from the hinge.
+   */
+
+  float side =
+    mix(
+      1.0,
+      -1.0,
+      isRight
+    );
+
+
+  /*
+   * Distance from hinge.
    */
 
   float d =
@@ -465,56 +539,78 @@ vec3 duoSample(
     );
 
 
-  /*
-   * Virtual glass position.
-   */
+  /* =======================================================
+     TILTED GLASS
+  ======================================================= */
 
   vec2 glass =
     vec2(
       hingeX +
       side *
       d *
-      cos(tilt),
+      cos(
+        tilt
+      ),
 
       fragCoord.y
     );
 
 
   /*
-   * Glass-to-screen-plane separation.
+   * Glass-to-UI-plane gap.
    */
 
   float gap =
     d *
-    sin(tilt);
+    sin(
+      tilt
+    );
 
 
-  /*
-   * Stationary eye.
-   */
+  /* =======================================================
+     STATIONARY EYE
+  ======================================================= */
 
   vec2 eye =
     size *
     0.5;
 
 
-  /*
-   * Ray continuation.
-   *
-   * This is the core of the DuoFold model.
-   */
+  /* =======================================================
+     RAY FROM EYE → GLASS → UI PLANE
+  ======================================================= */
 
   float depth =
-    max(
-      eyeDistance -
-      gap,
+    u_eyeDistance -
+    gap;
 
-      2.0
-    );
+
+  /*
+   * This is intentionally black in the
+   * physical reference when the ray cannot
+   * reach the UI plane.
+   */
+
+  if (
+    depth <=
+    0.001
+  ) {
+
+    gl_FragColor =
+      vec4(
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      );
+
+    return;
+
+  }
 
 
   float t =
-    eyeDistance /
+    u_eyeDistance /
     depth;
 
 
@@ -528,64 +624,68 @@ vec3 duoSample(
     t;
 
 
-  /*
-   * Keep the front screen attached.
-   *
-   * We intentionally do NOT allow the wallpaper
-   * to disappear when the projected ray passes
-   * outside the image.
-   */
-
-  hit.x =
-    clamp(
-      hit.x,
-      0.0,
-      size.x
-    );
-
-
-  hit.y =
-    clamp(
-      hit.y,
-      0.0,
-      size.y
-    );
-
-
-  /*
-   * Blur increases according to physical separation.
-   *
-   * Reference tuning:
-   *
-   * eye distance = 320
-   * blur spread = 0.55
-   */
+  /* =======================================================
+     BLUR
+  ======================================================= */
 
   float radius =
-    min(
-      blurSpread *
-      gap,
-
-      24.0
-    );
+    u_blurSpread *
+    gap;
 
 
   /*
-   * Darkening.
+   * Reference behavior:
+   *
+   * If the complete blur kernel misses
+   * the UI plane, output BLACK.
    */
+
+  if (
+    hit.x <
+      -radius ||
+
+    hit.y <
+      -radius ||
+
+    hit.x >
+      size.x +
+      radius ||
+
+    hit.y >
+      size.y +
+      radius
+  ) {
+
+    gl_FragColor =
+      vec4(
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      );
+
+    return;
+
+  }
+
+
+  /* =======================================================
+     FROST / DARKEN
+  ======================================================= */
 
   float attenuation =
     max(
       1.0 -
-      darkening *
+      u_darkening *
       radius,
 
-      0.45
+      0.0
     );
 
 
   /*
-   * Close to hinge = sharp.
+   * Near hinge:
+   * sharp image.
    */
 
   if (
@@ -593,19 +693,21 @@ vec3 duoSample(
     0.5
   ) {
 
-    return
-      sampleImage(
+    gl_FragColor =
+      content(
         hit
-      ).rgb
+      )
       *
       attenuation;
+
+    return;
 
   }
 
 
-  /*
-   * Vogel disk blur.
-   */
+  /* =======================================================
+     VOGEL DISK
+  ======================================================= */
 
   float taps =
     clamp(
@@ -617,11 +719,16 @@ vec3 duoSample(
     );
 
 
+  /*
+   * Per-pixel rotation.
+   */
+
   float rotation =
     fract(
       sin(
         dot(
           fragCoord,
+
           vec2(
             12.9898,
             78.233
@@ -636,12 +743,18 @@ vec3 duoSample(
 
 
   vec3 sum =
-    vec3(0.0);
+    vec3(
+      0.0
+    );
 
 
   float weightSum =
     0.0;
 
+
+  /*
+   * Fixed 32 iteration loop.
+   */
 
   for (
     int i = 0;
@@ -653,6 +766,11 @@ vec3 duoSample(
       float(i);
 
 
+    /*
+     * Ignore samples beyond
+     * the required tap count.
+     */
+
     float weight =
       1.0 -
       step(
@@ -660,6 +778,10 @@ vec3 duoSample(
         fi
       );
 
+
+    /*
+     * Vogel disk radius.
+     */
 
     float r =
       radius *
@@ -672,6 +794,10 @@ vec3 duoSample(
         taps
       );
 
+
+    /*
+     * Golden-angle distribution.
+     */
 
     float angle =
       fi *
@@ -692,16 +818,10 @@ vec3 duoSample(
       offset;
 
 
-    p =
-      clamp(
-        p,
-        vec2(0.0),
-        size
-      );
-
-
     sum +=
-      sampleImage(p).rgb
+      content(
+        p
+      ).rgb
       *
       weight;
 
@@ -712,341 +832,19 @@ vec3 duoSample(
   }
 
 
-  return
-    (
-      sum /
-      max(
-        weightSum,
-        1.0
-      )
-    )
-    *
-    attenuation;
-
-}
-
-
-/* =========================================================
-   MAIN
-========================================================= */
-
-void main() {
-
-  vec2 size =
-    u_resolution;
-
-
-  vec2 fragCoord =
-    v_uv *
-    size;
-
-
-  float signedTilt =
-    u_tiltDegrees;
-
-
-  float tiltAmount =
-    clamp(
-      abs(
-        signedTilt
-      ),
-      0.0,
-      45.0
-    );
-
-
-  float tilt =
-    radians(
-      tiltAmount
-    );
-
-
-  /*
-   * -------------------------------------------------------
-   * FLAT SCREEN
-   * -------------------------------------------------------
-   */
-
-  if (
-    tilt <
-    0.0001
-  ) {
-
-    gl_FragColor =
-      sampleImage(
-        fragCoord
-      );
-
-    return;
-
-  }
-
-
-  /*
-   * -------------------------------------------------------
-   * HINGE
-   * -------------------------------------------------------
-   *
-   * Positive tilt:
-   * right hinge.
-   *
-   * Negative tilt:
-   * left hinge.
-   */
-
-  float hingeOnRight =
-    step(
-      0.0,
-      signedTilt
-    );
-
-
-  float hingeX =
-    mix(
-      0.0,
-      size.x,
-      hingeOnRight
-    );
-
-
-  float side =
-    mix(
-      1.0,
-      -1.0,
-      hingeOnRight
-    );
-
-
-  /*
-   * -------------------------------------------------------
-   * FRONT WALLPAPER
-   * -------------------------------------------------------
-   *
-   * This is the important part.
-   *
-   * The entire screen remains occupied by the wallpaper.
-   * The wallpaper is NOT rotated as one rectangular card.
-   *
-   * Only the projected content is distorted.
-   */
-
-  vec3 front =
-    duoSample(
-      fragCoord,
-      hingeX,
-      side,
-      tilt,
-      320.0,
-      0.55,
-      0.012
-    );
-
-
-  /*
-   * -------------------------------------------------------
-   * HINGE DISTANCE
-   * -------------------------------------------------------
-   */
-
-  float distanceFromHinge =
-    abs(
-      fragCoord.x -
-      hingeX
-    );
-
-
-  /*
-   * Normalize distance.
-   */
-
-  float normalizedDistance =
-    distanceFromHinge /
-    size.x;
-
-
-  /*
-   * -------------------------------------------------------
-   * FOLD DEPTH
-   * -------------------------------------------------------
-   *
-   * This is not a card rotation.
-   *
-   * It creates the visual impression that a dark
-   * second surface is sitting behind the front screen.
-   */
-
-  float foldStrength =
-    sin(
-      tilt
-    );
-
-
-  /*
-   * Strongest close to the hinge.
-   */
-
-  float hingeMask =
-    1.0 -
-    smoothstep(
-      0.0,
-      0.18,
-      normalizedDistance
-    );
-
-
-  /*
-   * At the extreme hinge edge we create a subtle
-   * dark folded-body contribution.
-   */
-
-  float foldBody =
-    smoothstep(
-      0.82,
-      1.0,
-      normalizedDistance
-    )
-    *
-    foldStrength;
-
-
-  /*
-   * -------------------------------------------------------
-   * EDGE-BACKSIDE SHADOW
-   * -------------------------------------------------------
-   *
-   * The reference image has black visible beyond the
-   * front panel at the upper/lower hinge-side corners.
-   *
-   * We reproduce that visual cue WITHOUT covering
-   * the main wallpaper.
-   *
-   * It stays narrow.
-   */
-
-  float edgeDistance =
-    min(
-      fragCoord.y,
-      size.y -
-      fragCoord.y
-    );
-
-
-  float edgeMask =
-    1.0 -
-    smoothstep(
-      0.0,
-      size.y * 0.14,
-      edgeDistance
-    );
-
-
-  float backside =
-    foldStrength *
-    foldBody *
-    edgeMask;
-
-
-  /*
-   * -------------------------------------------------------
-   * HINGE SHADOW
-   * -------------------------------------------------------
-   *
-   * Very subtle darkening immediately beside the hinge.
-   */
-
-  float hingeShadow =
-    foldStrength *
-    hingeMask *
-    0.10;
-
-
-  front *=
-    1.0 -
-    hingeShadow;
-
-
-  /*
-   * -------------------------------------------------------
-   * BACKSIDE COLOR
-   * -------------------------------------------------------
-   */
-
-  vec3 backsideColor =
-    vec3(
-      0.005,
-      0.006,
-      0.008
-    );
-
-
-  /*
-   * -------------------------------------------------------
-   * COMPOSITE
-   * -------------------------------------------------------
-   *
-   * The wallpaper remains the dominant surface.
-   *
-   * The dark fold is only visible as a narrow physical
-   * cue around the hinge/edge.
-   */
-
-  float blackAmount =
-    clamp(
-      backside *
-      0.72,
-
-      0.0,
-      0.72
-    );
-
-
-  vec3 result =
-    mix(
-      front,
-      backsideColor,
-      blackAmount
-    );
-
-
-  /*
-   * -------------------------------------------------------
-   * KEEP SCREEN EDGES CONNECTED
-   * -------------------------------------------------------
-   *
-   * At the physical left/right screen boundary the
-   * wallpaper must remain attached.
-   *
-   * Therefore the black fold never completely replaces
-   * the edge pixels.
-   */
-
-  float screenEdge =
-    min(
-      fragCoord.x,
-      size.x -
-      fragCoord.x
-    );
-
-
-  float edgeProtect =
-    smoothstep(
-      0.0,
-      12.0,
-      screenEdge
-    );
-
-
-  result =
-    mix(
-      front,
-      result,
-      edgeProtect
+  vec3 average =
+    sum /
+    max(
+      weightSum,
+      1.0
     );
 
 
   gl_FragColor =
     vec4(
-      result,
+      average *
+      attenuation,
+
       1.0
     );
 
@@ -1056,7 +854,7 @@ void main() {
 
 
 /* =========================================================
-   SHADER COMPILER
+   SHADER COMPILATION
 ========================================================= */
 
 function compileShader(
@@ -1088,19 +886,10 @@ function compileShader(
     )
   ) {
 
-    const error =
+    throw new Error(
       gl.getShaderInfoLog(
         shader
-      );
-
-
-    showError(
-      error
-    );
-
-
-    throw new Error(
-      error
+      )
     );
 
   }
@@ -1118,14 +907,14 @@ function compileShader(
 const vertexShader =
   compileShader(
     gl.VERTEX_SHADER,
-    vertexSource
+    vertexShaderSource
   );
 
 
 const fragmentShader =
   compileShader(
     gl.FRAGMENT_SHADER,
-    fragmentSource
+    fragmentShaderSource
   );
 
 
@@ -1244,122 +1033,147 @@ const U = {
       "u_imageAspect"
     ),
 
-  tiltDegrees:
+  tilt:
     gl.getUniformLocation(
       program,
       "u_tiltDegrees"
     ),
 
-  eyeDistance:
+  eye:
     gl.getUniformLocation(
       program,
       "u_eyeDistance"
     ),
 
-  blurSpread:
+  blur:
     gl.getUniformLocation(
       program,
       "u_blurSpread"
     ),
 
-  darkening:
+  dark:
     gl.getUniformLocation(
       program,
       "u_darkening"
     ),
 
-  image:
+  texture:
     gl.getUniformLocation(
       program,
-      "u_image"
+      "u_texture"
     )
 
 };
 
 
 /* =========================================================
-   IMAGE
+   TEXTURE
 ========================================================= */
-
-const image =
-  new Image();
-
-
-image.src =
-  "lockscreen.png";
-
 
 const texture =
   gl.createTexture();
 
 
+gl.bindTexture(
+  gl.TEXTURE_2D,
+  texture
+);
+
+
+gl.texParameteri(
+  gl.TEXTURE_2D,
+  gl.TEXTURE_MIN_FILTER,
+  gl.LINEAR
+);
+
+
+gl.texParameteri(
+  gl.TEXTURE_2D,
+  gl.TEXTURE_MAG_FILTER,
+  gl.LINEAR
+);
+
+
+gl.texParameteri(
+  gl.TEXTURE_2D,
+  gl.TEXTURE_WRAP_S,
+  gl.CLAMP_TO_EDGE
+);
+
+
+gl.texParameteri(
+  gl.TEXTURE_2D,
+  gl.TEXTURE_WRAP_T,
+  gl.CLAMP_TO_EDGE
+);
+
+
+gl.uniform1i(
+  U.texture,
+  0
+);
+
+
+/* =========================================================
+   IMAGE
+========================================================= */
+
+let image =
+  new Image();
+
+
+let imageAspect =
+  9 / 16;
+
+
+function uploadImage(
+  source
+) {
+
+  gl.bindTexture(
+    gl.TEXTURE_2D,
+    texture
+  );
+
+
+  gl.pixelStorei(
+    gl.UNPACK_FLIP_Y_WEBGL,
+    true
+  );
+
+
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGBA,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE,
+    source
+  );
+
+
+  imageAspect =
+    source.naturalWidth /
+    source.naturalHeight;
+
+
+  resize();
+
+}
+
+
 image.onload =
   function() {
 
-    gl.bindTexture(
-      gl.TEXTURE_2D,
-      texture
-    );
-
-
-    gl.pixelStorei(
-      gl.UNPACK_FLIP_Y_WEBGL,
-      true
-    );
-
-
-    gl.texParameteri(
-      gl.TEXTURE_2D,
-      gl.TEXTURE_MIN_FILTER,
-      gl.LINEAR
-    );
-
-
-    gl.texParameteri(
-      gl.TEXTURE_2D,
-      gl.TEXTURE_MAG_FILTER,
-      gl.LINEAR
-    );
-
-
-    gl.texParameteri(
-      gl.TEXTURE_2D,
-      gl.TEXTURE_WRAP_S,
-      gl.CLAMP_TO_EDGE
-    );
-
-
-    gl.texParameteri(
-      gl.TEXTURE_2D,
-      gl.TEXTURE_WRAP_T,
-      gl.CLAMP_TO_EDGE
-    );
-
-
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
+    uploadImage(
       image
     );
 
-
-    gl.uniform1i(
-      U.image,
-      0
-    );
-
-
-    resize();
-
-
-    requestAnimationFrame(
-      render
-    );
-
   };
+
+
+image.src =
+  "lockscreen.png";
 
 
 /* =========================================================
@@ -1406,19 +1220,11 @@ function resize() {
   );
 
 
-  if (
-    image.naturalWidth &&
-    image.naturalHeight
-  ) {
+  gl.uniform1f(
+    U.imageAspect,
 
-    gl.uniform1f(
-      U.imageAspect,
-
-      image.naturalWidth /
-      image.naturalHeight
-    );
-
-  }
+    imageAspect
+  );
 
 }
 
@@ -1430,14 +1236,8 @@ window.addEventListener(
 
 
 /* =========================================================
-   MOTION
+   TILT CONTROL
 ========================================================= */
-
-let rawGamma =
-  0;
-
-let zeroGamma =
-  0;
 
 let targetTilt =
   0;
@@ -1446,17 +1246,198 @@ let currentTilt =
   0;
 
 
-const MAX_TILT =
-  45;
+const slider =
+  document.getElementById(
+    "slider"
+  );
 
 
-function orientationHandler(
+const value =
+  document.getElementById(
+    "value"
+  );
+
+
+function setTilt(
+  amount
+) {
+
+  targetTilt =
+    Math.max(
+      -45,
+      Math.min(
+        45,
+        Number(amount)
+      )
+    );
+
+
+  slider.value =
+    targetTilt;
+
+
+  const rounded =
+    Number(
+      targetTilt
+    ).toFixed(1);
+
+
+  value.textContent =
+    (
+      targetTilt >= 0
+        ? "+"
+        : ""
+    )
+    +
+    rounded.replace(
+      ".0",
+      ""
+    )
+    +
+    "°";
+
+}
+
+
+slider.addEventListener(
+  "input",
+  function(event) {
+
+    sensorEnabled =
+      false;
+
+    setTilt(
+      event.target.value
+    );
+
+  }
+);
+
+
+document
+  .getElementById(
+    "minus"
+  )
+  .addEventListener(
+    "click",
+    function() {
+
+      setTilt(
+        targetTilt - 1
+      );
+
+    }
+  );
+
+
+document
+  .getElementById(
+    "plus"
+  )
+  .addEventListener(
+    "click",
+    function() {
+
+      setTilt(
+        targetTilt + 1
+      );
+
+    }
+  );
+
+
+/* =========================================================
+   IMAGE PICKER
+========================================================= */
+
+const picker =
+  document.getElementById(
+    "picker"
+  );
+
+
+document
+  .getElementById(
+    "choose"
+  )
+  .addEventListener(
+    "click",
+    function() {
+
+      picker.click();
+
+    }
+  );
+
+
+picker.addEventListener(
+  "change",
+  function(event) {
+
+    const file =
+      event.target.files[0];
+
+
+    if (!file) {
+      return;
+    }
+
+
+    const url =
+      URL.createObjectURL(
+        file
+      );
+
+
+    const selected =
+      new Image();
+
+
+    selected.onload =
+      function() {
+
+        uploadImage(
+          selected
+        );
+
+
+        URL.revokeObjectURL(
+          url
+        );
+
+      };
+
+
+    selected.src =
+      url;
+
+  }
+);
+
+
+/* =========================================================
+   MOTION SENSOR
+========================================================= */
+
+let sensorEnabled =
+  false;
+
+let rawGamma =
+  0;
+
+let zeroGamma =
+  0;
+
+
+function handleOrientation(
   event
 ) {
 
   if (
-    event.gamma === null ||
-    event.gamma === undefined
+    event.gamma ===
+    null ||
+    event.gamma ===
+    undefined
   ) {
 
     return;
@@ -1468,40 +1449,21 @@ function orientationHandler(
     event.gamma;
 
 
-  targetTilt =
-    Math.max(
-      -MAX_TILT,
+  if (
+    sensorEnabled
+  ) {
 
-      Math.min(
-        MAX_TILT,
-
-        rawGamma -
-        zeroGamma
-      )
+    setTilt(
+      rawGamma -
+      zeroGamma
     );
 
-}
-
-
-function calibrate() {
-
-  zeroGamma =
-    rawGamma;
-
-  targetTilt =
-    0;
-
-  currentTilt =
-    0;
+  }
 
 }
 
 
-/* =========================================================
-   START
-========================================================= */
-
-async function startMotion() {
+async function enableSensor() {
 
   try {
 
@@ -1526,9 +1488,7 @@ async function startMotion() {
         "granted"
       ) {
 
-        throw new Error(
-          "Motion permission was not granted."
-        );
+        return;
 
       }
 
@@ -1537,39 +1497,35 @@ async function startMotion() {
 
     window.addEventListener(
       "deviceorientation",
-      orientationHandler,
+      handleOrientation,
       true
     );
 
 
-    document
-      .getElementById(
-        "permission"
-      )
-      .style.display =
-      "none";
+    zeroGamma =
+      rawGamma;
+
+
+    sensorEnabled =
+      true;
 
 
     document
       .getElementById(
-        "recalibrate"
+        "sensor"
       )
-      .style.display =
-      "block";
-
-
-    setTimeout(
-      calibrate,
-      700
-    );
+      .textContent =
+      "Sensor ON";
 
   }
 
-  catch (error) {
+  catch (
+    error
+  ) {
 
-    showError(
+    alert(
       error.message ||
-      "Unable to access motion."
+      "Motion permission failed."
     );
 
   }
@@ -1579,46 +1535,36 @@ async function startMotion() {
 
 document
   .getElementById(
-    "start"
+    "sensor"
   )
   .addEventListener(
     "click",
-    startMotion
-  );
-
-
-document
-  .getElementById(
-    "recalibrate"
-  )
-  .addEventListener(
-    "click",
-    calibrate
+    enableSensor
   );
 
 
 /* =========================================================
-   ERROR
+   RECALIBRATE
 ========================================================= */
 
-function showError(
-  message
-) {
+document
+  .getElementById(
+    "reset"
+  )
+  .addEventListener(
+    "click",
+    function() {
 
-  const element =
-    document.getElementById(
-      "error"
-    );
-
-
-  element.textContent =
-    message;
+      zeroGamma =
+        rawGamma;
 
 
-  element.style.display =
-    "block";
+      setTilt(
+        0
+      );
 
-}
+    }
+  );
 
 
 /* =========================================================
@@ -1633,7 +1579,7 @@ function render() {
 
 
   /*
-   * Smooth physical response.
+   * Smooth physical motion.
    */
 
   currentTilt +=
@@ -1642,36 +1588,33 @@ function render() {
       currentTilt
     )
     *
-    0.12;
+    0.14;
 
 
   /*
-   * Reference convention:
-   *
-   * + = right hinge
-   * - = left hinge
+   * Reference parameters.
    */
 
   gl.uniform1f(
-    U.tiltDegrees,
+    U.tilt,
     currentTilt
   );
 
 
   gl.uniform1f(
-    U.eyeDistance,
+    U.eye,
     320.0
   );
 
 
   gl.uniform1f(
-    U.blurSpread,
+    U.blur,
     0.55
   );
 
 
   gl.uniform1f(
-    U.darkening,
+    U.dark,
     0.012
   );
 
@@ -1694,6 +1637,15 @@ function render() {
   );
 
 }
+
+
+/* =========================================================
+   START
+========================================================= */
+
+resize();
+
+render();
 
 </script>
 
