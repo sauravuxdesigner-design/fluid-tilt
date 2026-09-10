@@ -1,6 +1,9 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
 <meta charset="UTF-8">
 
 <meta
@@ -21,6 +24,7 @@
 
 html,
 body {
+
     width: 100%;
     height: 100%;
 
@@ -30,14 +34,19 @@ body {
     overflow: hidden;
 
     background: #000;
+
 }
 
 body {
+
     touch-action: none;
+
     overscroll-behavior: none;
+
 }
 
 #canvas {
+
     position: fixed;
 
     inset: 0;
@@ -48,9 +57,11 @@ body {
     display: block;
 
     touch-action: none;
+
 }
 
 #motionButton {
+
     position: fixed;
 
     left: 50%;
@@ -58,34 +69,47 @@ body {
 
     transform: translateX(-50%);
 
-    padding: 12px 20px;
+    padding: 13px 22px;
 
-    border: 1px solid rgba(255,255,255,.18);
+    border: 1px solid
+        rgba(255,255,255,.18);
 
     border-radius: 999px;
 
-    background: rgba(0,0,0,.45);
+    background:
+        rgba(0,0,0,.48);
 
-    color: rgba(255,255,255,.8);
+    color:
+        rgba(255,255,255,.85);
 
-    font-family: Arial, sans-serif;
+    font-family:
+        Arial,
+        sans-serif;
 
     font-size: 12px;
 
-    backdrop-filter: blur(14px);
+    letter-spacing: .02em;
 
-    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter:
+        blur(18px);
+
+    -webkit-backdrop-filter:
+        blur(18px);
 
     z-index: 10;
 
     cursor: pointer;
+
 }
 
 #motionButton.hidden {
+
     display: none;
+
 }
 
 #error {
+
     position: fixed;
 
     inset: 0;
@@ -93,93 +117,124 @@ body {
     display: none;
 
     align-items: center;
+
     justify-content: center;
 
     padding: 30px;
 
     color: white;
 
-    font-family: Arial, sans-serif;
+    background: #000;
+
+    font-family:
+        Arial,
+        sans-serif;
+
+    font-size: 14px;
+
+    line-height: 1.6;
 
     text-align: center;
 
-    background: #000;
-
     z-index: 20;
+
 }
 
 </style>
+
 </head>
 
 
 <body>
 
+
 <canvas id="canvas"></canvas>
+
 
 <button id="motionButton">
     Enable Motion
 </button>
+
 
 <div id="error"></div>
 
 
 <script>
 
+
 /*
 ==============================================================
 CONFIGURATION
 ==============================================================
-
-Your GitHub repository should contain:
-
-    index.html
-    lockscreen.png
-
-The image is loaded using this relative path.
 */
-
-const IMAGE_URL = "./lockscreen.png";
 
 
 /*
-==============================================================
-DUOFOLD PARAMETERS
+    index.html
+    lockscreen.png
 
-Based on the values/concepts used by the original project.
-==============================================================
+    must be in the same folder.
 */
+
+const IMAGE_URL =
+    "./lockscreen.png";
+
 
 const CONFIG = {
 
-    eyeDistance: 320.0,
+    /*
+    Original DuoFold-style parameters.
+    */
 
-    blurSpread: 0.55,
+    eyeDistance:
+        320.0,
 
-    darkening: 0.012,
+    blurSpread:
+        0.55,
 
-    maxBlur: 24.0,
+    darkening:
+        0.012,
 
-    maxTilt: 45.0,
+    maxBlur:
+        24.0,
 
-    motionSensitivity: 1.0,
+    maxTilt:
+        45.0,
 
-    smoothing: 0.12,
 
-    spring: 0.08,
+    /*
+    Device motion sensitivity.
+    */
 
-    friction: 0.82
+    motionSensitivity:
+        1.0,
+
+
+    /*
+    Smooth physical movement.
+    */
+
+    spring:
+        0.16,
+
+    friction:
+        0.78
 
 };
 
 
 /*
 ==============================================================
-CANVAS
+CANVAS / WEBGL
 ==============================================================
 */
 
+
 const canvas =
-    document.getElementById("canvas");
+    document.getElementById(
+        "canvas"
+    );
+
 
 const gl =
     canvas.getContext(
@@ -211,6 +266,7 @@ VERTEX SHADER
 ==============================================================
 */
 
+
 const vertexShaderSource = `
 
 attribute vec2 aPosition;
@@ -240,34 +296,25 @@ void main() {
 FRAGMENT SHADER
 ==============================================================
 
-The image is treated as the original UI plane.
+Continuous version.
 
-For every screen pixel:
+There is deliberately NO visual threshold.
 
-    eye
-      ↓
-    tilted glass
-      ↓
-    ray
-      ↓
-    original lockscreen plane
+At even a tiny non-zero tilt:
 
-Then:
-
-    gap
-      ↓
-    blur radius
-      ↓
-    Vogel disk samples
-      ↓
-    darkening
+    perspective changes
+    projection changes
+    blur begins
+    shading begins
 
 ==============================================================
 */
 
+
 const fragmentShaderSource = `
 
 precision highp float;
+
 
 uniform sampler2D uImage;
 
@@ -287,14 +334,13 @@ uniform float uMaxBlur;
 
 uniform float uTime;
 
+
 varying vec2 vUV;
 
 
-const float PI =
-    3.14159265358979323846;
-
 const float TWO_PI =
     6.28318530717958647692;
+
 
 const float GOLDEN_ANGLE =
     2.39996322972865332;
@@ -302,9 +348,10 @@ const float GOLDEN_ANGLE =
 
 /*
 --------------------------------------------------------------
-Random rotation
+Random
 --------------------------------------------------------------
 */
+
 
 float random(
     vec2 p
@@ -330,12 +377,15 @@ float random(
 /*
 --------------------------------------------------------------
 Cover image
+--------------------------------------------------------------
 
-Same behavior as:
+Equivalent to:
 
 background-size: cover
+
 --------------------------------------------------------------
 */
+
 
 vec2 coverUV(
     vec2 uv
@@ -345,13 +395,10 @@ vec2 coverUV(
         uResolution.x /
         uResolution.y;
 
+
     float imageRatio =
         uImageResolution.x /
         uImageResolution.y;
-
-
-    vec2 result =
-        uv;
 
 
     if (
@@ -364,7 +411,7 @@ vec2 coverUV(
             screenRatio;
 
 
-        result.y =
+        uv.y =
             (uv.y - 0.5) *
             scale +
             0.5;
@@ -378,7 +425,7 @@ vec2 coverUV(
             imageRatio;
 
 
-        result.x =
+        uv.x =
             (uv.x - 0.5) *
             scale +
             0.5;
@@ -386,16 +433,17 @@ vec2 coverUV(
     }
 
 
-    return result;
+    return uv;
 
 }
 
 
 /*
 --------------------------------------------------------------
-Sample image
+Image sampling
 --------------------------------------------------------------
 */
+
 
 vec3 sampleImage(
     vec2 pixel
@@ -407,7 +455,9 @@ vec3 sampleImage(
 
 
     uv =
-        coverUV(uv);
+        coverUV(
+            uv
+        );
 
 
     if (
@@ -417,7 +467,9 @@ vec3 sampleImage(
         uv.y > 1.0
     ) {
 
-        return vec3(0.0);
+        return vec3(
+            0.0
+        );
 
     }
 
@@ -432,17 +484,26 @@ vec3 sampleImage(
 
 /*
 --------------------------------------------------------------
-Vogel disk
+Continuous Vogel disk blur
 --------------------------------------------------------------
 */
+
 
 vec3 vogelBlur(
     vec2 point,
     float radius
 ) {
 
+
+    /*
+    At zero radius:
+
+        direct sample
+
+    */
+
     if (
-        radius < 0.5
+        radius <= 0.01
     ) {
 
         return sampleImage(
@@ -453,26 +514,33 @@ vec3 vogelBlur(
 
 
     vec3 total =
-        vec3(0.0);
+        vec3(
+            0.0
+        );
 
 
-    float totalWeight =
+    float weightTotal =
         0.0;
 
 
+    /*
+    Number of samples increases
+    continuously with blur.
+    */
+
     float taps =
         clamp(
-            8.0 +
-            radius,
-            8.0,
+            6.0 +
+            radius * 1.4,
+
+            6.0,
             32.0
         );
 
 
     float rotation =
         random(
-            point +
-            uTime * 0.0001
+            point
         )
         *
         TWO_PI;
@@ -483,6 +551,7 @@ vec3 vogelBlur(
         i < 32;
         i++
     ) {
+
 
         float index =
             float(i);
@@ -496,19 +565,19 @@ vec3 vogelBlur(
             );
 
 
-        float normalized =
-            (
-                index +
-                0.5
-            )
-            /
-            taps;
+        /*
+        Vogel disk radius.
+        */
 
-
-        float sampleRadius =
+        float r =
             radius *
             sqrt(
-                normalized
+                (
+                    index +
+                    0.5
+                )
+                /
+                taps
             );
 
 
@@ -524,7 +593,28 @@ vec3 vogelBlur(
                 sin(angle)
             )
             *
-            sampleRadius;
+            r;
+
+
+        /*
+        Center samples are weighted
+        slightly more strongly.
+        */
+
+        float normalized =
+            r /
+            max(
+                radius,
+                0.001
+            );
+
+
+        float weight =
+            mix(
+                1.35,
+                0.65,
+                normalized
+            );
 
 
         vec3 color =
@@ -536,10 +626,12 @@ vec3 vogelBlur(
 
         total +=
             color *
+            weight *
             enabled;
 
 
-        totalWeight +=
+        weightTotal +=
+            weight *
             enabled;
 
     }
@@ -548,27 +640,48 @@ vec3 vogelBlur(
     return
         total /
         max(
-            totalWeight,
-            1.0
+            weightTotal,
+            0.001
         );
 
 }
 
 
 /*
---------------------------------------------------------------
+==============================================================
 MAIN
---------------------------------------------------------------
+==============================================================
 */
 
+
 void main() {
+
+
+    /*
+    ----------------------------------------------------------
+    Current screen pixel
+    ----------------------------------------------------------
+    */
 
     vec2 pixel =
         vUV *
         uResolution;
 
 
-    float tilt =
+    /*
+    ----------------------------------------------------------
+    Tilt
+
+    IMPORTANT:
+
+    No threshold is applied.
+
+    The effect starts immediately
+    at any non-zero tilt.
+    ----------------------------------------------------------
+    */
+
+    float signedTilt =
         radians(
             clamp(
                 uTilt,
@@ -579,22 +692,26 @@ void main() {
 
 
     float angle =
-        abs(tilt);
+        abs(
+            signedTilt
+        );
 
 
     /*
     ----------------------------------------------------------
-    No tilt
+    At exactly zero degrees, show the original image.
     ----------------------------------------------------------
     */
 
     if (
-        angle < 0.0001
+        angle < 0.000001
     ) {
 
         gl_FragColor =
             vec4(
-                sampleImage(pixel),
+                sampleImage(
+                    pixel
+                ),
                 1.0
             );
 
@@ -605,13 +722,7 @@ void main() {
 
     /*
     ----------------------------------------------------------
-    Determine hinge
-
-    Positive:
-        right edge
-
-    Negative:
-        left edge
+    Hinge
     ----------------------------------------------------------
     */
 
@@ -621,8 +732,13 @@ void main() {
 
 
     if (
-        uTilt > 0.0
+        signedTilt > 0.0
     ) {
+
+        /*
+        Positive tilt:
+        fold from right edge.
+        */
 
         hingeX =
             uResolution.x;
@@ -633,6 +749,11 @@ void main() {
     }
 
     else {
+
+        /*
+        Negative tilt:
+        fold from left edge.
+        */
 
         hingeX =
             0.0;
@@ -658,20 +779,34 @@ void main() {
 
     /*
     ----------------------------------------------------------
+    Trigonometry
+    ----------------------------------------------------------
+    */
+
+    float sinTilt =
+        sin(
+            angle
+        );
+
+
+    float cosTilt =
+        cos(
+            angle
+        );
+
+
+    /*
+    ----------------------------------------------------------
     Tilted glass position
     ----------------------------------------------------------
     */
 
     float glassX =
         hingeX +
+
         direction *
         distanceFromHinge *
-        cos(angle);
-
-
-    float gap =
-        distanceFromHinge *
-        sin(angle);
+        cosTilt;
 
 
     vec2 glassPoint =
@@ -683,10 +818,18 @@ void main() {
 
     /*
     ----------------------------------------------------------
-    Stationary eye
+    Physical glass / screen separation
+    ----------------------------------------------------------
+    */
 
-    Eye is positioned in front of
-    the original screen plane.
+    float gap =
+        distanceFromHinge *
+        sinTilt;
+
+
+    /*
+    ----------------------------------------------------------
+    Stationary eye
     ----------------------------------------------------------
     */
 
@@ -697,30 +840,25 @@ void main() {
 
     /*
     ----------------------------------------------------------
-    Project ray back onto original plane
+    Perspective projection
+
+    Ray:
+
+        eye → glass
+
+    projected onto:
+
+        original lockscreen
     ----------------------------------------------------------
     */
 
     float depth =
-        uEyeDistance -
-        gap;
+        max(
+            uEyeDistance -
+            gap,
 
-
-    if (
-        depth <= 0.001
-    ) {
-
-        gl_FragColor =
-            vec4(
-                0.0,
-                0.0,
-                0.0,
-                1.0
-            );
-
-        return;
-
-    }
+            1.0
+        );
 
 
     float rayT =
@@ -730,6 +868,7 @@ void main() {
 
     vec2 projected =
         eye +
+
         (
             glassPoint -
             eye
@@ -740,17 +879,71 @@ void main() {
 
     /*
     ----------------------------------------------------------
-    Blur
+    CONTINUOUS DISTORTION
 
-    The farther the glass moves from
-    the original screen plane,
-    the stronger the blur.
+    This explicitly makes distortion
+    begin from the first movement.
+    ----------------------------------------------------------
+    */
+
+    float normalizedTilt =
+        angle /
+        radians(
+            45.0
+        );
+
+
+    float distortion =
+        sinTilt *
+        0.85;
+
+
+    vec2 fromCenter =
+        projected -
+        eye;
+
+
+    projected +=
+        fromCenter *
+        distortion *
+        0.035;
+
+
+    /*
+    ----------------------------------------------------------
+    CONTINUOUS BLUR
+    ----------------------------------------------------------
+
+    IMPORTANT:
+
+    Blur does NOT wait for a threshold.
+
+    Even at:
+
+        0.1°
+        0.5°
+        1°
+
+    there is already blur.
+
     ----------------------------------------------------------
     */
 
     float blurRadius =
         gap *
         uBlurSpread;
+
+
+    /*
+    Small angle-dependent component.
+
+    This prevents the hinge region from
+    staying completely sharp during tiny tilts.
+    */
+
+    blurRadius +=
+        angle *
+        0.45;
 
 
     blurRadius =
@@ -763,15 +956,21 @@ void main() {
 
     /*
     ----------------------------------------------------------
-    Darkening
+    Continuous darkening
     ----------------------------------------------------------
     */
 
     float darkness =
-        clamp(
-            1.0 -
+        1.0 -
+        (
             blurRadius *
-            uDarkening,
+            uDarkening
+        );
+
+
+    darkness =
+        clamp(
+            darkness,
             0.0,
             1.0
         );
@@ -779,16 +978,21 @@ void main() {
 
     /*
     ----------------------------------------------------------
-    Projected point outside screen
+    Projected image bounds
     ----------------------------------------------------------
     */
 
     if (
-        projected.x < -blurRadius ||
+        projected.x <
+            -blurRadius ||
+
         projected.x >
             uResolution.x +
             blurRadius ||
-        projected.y < -blurRadius ||
+
+        projected.y <
+            -blurRadius ||
+
         projected.y >
             uResolution.y +
             blurRadius
@@ -809,51 +1013,81 @@ void main() {
 
     /*
     ----------------------------------------------------------
-    Blur the projected lock screen
+    Blur
     ----------------------------------------------------------
     */
 
-    vec3 result =
+    vec3 color =
         vogelBlur(
             projected,
             blurRadius
         );
 
 
-    result *=
+    /*
+    ----------------------------------------------------------
+    Darken
+    ----------------------------------------------------------
+    */
+
+    color *=
         darkness;
 
 
     /*
     ----------------------------------------------------------
-    Slight glass highlight
+    Fold highlight
 
-    This gives the fold an optical edge.
+    Also begins immediately with tilt.
     ----------------------------------------------------------
     */
 
-    float edge =
+    float edgeAmount =
         smoothstep(
             0.0,
-            1.0,
-            gap / 120.0
+            radians(
+                15.0
+            ),
+            angle
         );
 
 
-    float highlight =
-        edge *
-        0.045;
+    float edgeLight =
+        edgeAmount *
+        0.055;
 
 
-    result +=
+    color +=
         vec3(
-            highlight
+            edgeLight
         );
 
+
+    /*
+    ----------------------------------------------------------
+    Very subtle fold shading
+    ----------------------------------------------------------
+    */
+
+    float shading =
+        1.0 -
+        normalizedTilt *
+        0.10;
+
+
+    color *=
+        shading;
+
+
+    /*
+    ----------------------------------------------------------
+    Output
+    ----------------------------------------------------------
+    */
 
     gl_FragColor =
         vec4(
-            result,
+            color,
             1.0
         );
 
@@ -864,9 +1098,10 @@ void main() {
 
 /*
 ==============================================================
-SHADER HELPERS
+COMPILE SHADER
 ==============================================================
 */
+
 
 function compileShader(
     type,
@@ -874,7 +1109,9 @@ function compileShader(
 ) {
 
     const shader =
-        gl.createShader(type);
+        gl.createShader(
+            type
+        );
 
 
     gl.shaderSource(
@@ -903,7 +1140,7 @@ function compileShader(
 
 
         throw new Error(
-            "Shader compilation failed"
+            "Shader compilation failed."
         );
 
     }
@@ -912,6 +1149,13 @@ function compileShader(
     return shader;
 
 }
+
+
+/*
+==============================================================
+PROGRAM
+==============================================================
+*/
 
 
 const vertexShader =
@@ -936,6 +1180,7 @@ gl.attachShader(
     program,
     vertexShader
 );
+
 
 gl.attachShader(
     program,
@@ -963,7 +1208,7 @@ if (
 
 
     throw new Error(
-        "Shader linking failed"
+        "Program linking failed."
     );
 
 }
@@ -976,9 +1221,10 @@ gl.useProgram(
 
 /*
 ==============================================================
-FULL SCREEN QUAD
+FULLSCREEN QUAD
 ==============================================================
 */
+
 
 const buffer =
     gl.createBuffer();
@@ -991,6 +1237,7 @@ gl.bindBuffer(
 
 
 gl.bufferData(
+
     gl.ARRAY_BUFFER,
 
     new Float32Array([
@@ -1006,6 +1253,7 @@ gl.bufferData(
     ]),
 
     gl.STATIC_DRAW
+
 );
 
 
@@ -1022,12 +1270,19 @@ gl.enableVertexAttribArray(
 
 
 gl.vertexAttribPointer(
+
     positionLocation,
+
     2,
+
     gl.FLOAT,
+
     false,
+
     0,
+
     0
+
 );
 
 
@@ -1036,6 +1291,7 @@ gl.vertexAttribPointer(
 UNIFORMS
 ==============================================================
 */
+
 
 const uniforms = {
 
@@ -1102,6 +1358,7 @@ IMAGE
 ==============================================================
 */
 
+
 const image =
     new Image();
 
@@ -1121,9 +1378,13 @@ image.onload = () => {
 
 
     gl.uniform2f(
+
         uniforms.imageResolution,
+
         image.naturalWidth,
+
         image.naturalHeight
+
     );
 
 
@@ -1135,7 +1396,9 @@ image.onload = () => {
 image.onerror = () => {
 
     showError(
-        "Could not load lockscreen.png. Make sure the file is named exactly lockscreen.png and is in the same folder as index.html."
+
+        "Unable to load lockscreen.png. Make sure the filename is exactly lockscreen.png and that it is in the same folder as index.html."
+
     );
 
 };
@@ -1150,6 +1413,7 @@ image.src =
 TEXTURE
 ==============================================================
 */
+
 
 const texture =
     gl.createTexture();
@@ -1167,30 +1431,46 @@ gl.bindTexture(
 
 
 gl.texParameteri(
+
     gl.TEXTURE_2D,
+
     gl.TEXTURE_MIN_FILTER,
+
     gl.LINEAR
+
 );
 
 
 gl.texParameteri(
+
     gl.TEXTURE_2D,
+
     gl.TEXTURE_MAG_FILTER,
+
     gl.LINEAR
+
 );
 
 
 gl.texParameteri(
+
     gl.TEXTURE_2D,
+
     gl.TEXTURE_WRAP_S,
+
     gl.CLAMP_TO_EDGE
+
 );
 
 
 gl.texParameteri(
+
     gl.TEXTURE_2D,
+
     gl.TEXTURE_WRAP_T,
+
     gl.CLAMP_TO_EDGE
+
 );
 
 
@@ -1205,6 +1485,7 @@ gl.uniform1i(
 UPLOAD IMAGE
 ==============================================================
 */
+
 
 function uploadImage() {
 
@@ -1229,18 +1510,28 @@ function uploadImage() {
 
 
     gl.pixelStorei(
+
         gl.UNPACK_FLIP_Y_WEBGL,
+
         true
+
     );
 
 
     gl.texImage2D(
+
         gl.TEXTURE_2D,
+
         0,
+
         gl.RGBA,
+
         gl.RGBA,
+
         gl.UNSIGNED_BYTE,
+
         image
+
     );
 
 }
@@ -1251,6 +1542,7 @@ function uploadImage() {
 RESIZE
 ==============================================================
 */
+
 
 function resize() {
 
@@ -1286,17 +1578,23 @@ function resize() {
 
 
     gl.viewport(
+
         0,
         0,
+
         canvas.width,
         canvas.height
+
     );
 
 
     gl.uniform2f(
+
         uniforms.resolution,
+
         canvas.width,
         canvas.height
+
     );
 
 
@@ -1313,31 +1611,44 @@ window.addEventListener(
 
 /*
 ==============================================================
-INITIAL PARAMETERS
+SET SHADER PARAMETERS
 ==============================================================
 */
 
+
 gl.uniform1f(
+
     uniforms.eyeDistance,
+
     CONFIG.eyeDistance
+
 );
 
 
 gl.uniform1f(
+
     uniforms.blurSpread,
+
     CONFIG.blurSpread
+
 );
 
 
 gl.uniform1f(
+
     uniforms.darkening,
+
     CONFIG.darkening
+
 );
 
 
 gl.uniform1f(
+
     uniforms.maxBlur,
+
     CONFIG.maxBlur
+
 );
 
 
@@ -1347,11 +1658,14 @@ MOTION STATE
 ==============================================================
 */
 
+
 let targetTilt =
     0;
 
+
 let currentTilt =
     0;
+
 
 let velocity =
     0;
@@ -1359,15 +1673,14 @@ let velocity =
 
 /*
 ==============================================================
-MOTION CALIBRATION
+DEVICE MOTION CALIBRATION
 ==============================================================
 */
+
 
 let calibrationGamma =
     0;
 
-let calibrationBeta =
-    0;
 
 let calibrated =
     false;
@@ -1377,21 +1690,16 @@ let calibrated =
 ==============================================================
 DEVICE ORIENTATION
 ==============================================================
-
-gamma = left/right tilt
-
-beta = front/back tilt
-
-For the fold we primarily use gamma.
-==============================================================
 */
+
 
 function handleOrientation(
     event
 ) {
 
     if (
-        event.gamma == null
+        event.gamma === null ||
+        event.gamma === undefined
     ) {
 
         return;
@@ -1399,15 +1707,17 @@ function handleOrientation(
     }
 
 
+    /*
+    First orientation becomes
+    the neutral position.
+    */
+
     if (
         !calibrated
     ) {
 
         calibrationGamma =
             event.gamma;
-
-        calibrationBeta =
-            event.beta || 0;
 
         calibrated =
             true;
@@ -1420,20 +1730,19 @@ function handleOrientation(
         calibrationGamma;
 
 
-    /*
-    Some devices report inverted
-    gamma values depending on orientation.
-    */
-
     gamma *=
         CONFIG.motionSensitivity;
 
 
     targetTilt =
         clamp(
+
             gamma,
+
             -CONFIG.maxTilt,
+
             CONFIG.maxTilt
+
         );
 
 }
@@ -1441,9 +1750,10 @@ function handleOrientation(
 
 /*
 ==============================================================
-MOTION PERMISSION
+MOTION BUTTON
 ==============================================================
 */
+
 
 const motionButton =
     document.getElementById(
@@ -1456,16 +1766,20 @@ async function enableMotion() {
     try {
 
         /*
-        iOS requires permission.
+        iOS permission.
         */
 
         if (
+
             typeof DeviceOrientationEvent !==
-            "undefined" &&
+            "undefined"
+
+            &&
 
             typeof DeviceOrientationEvent
                 .requestPermission ===
             "function"
+
         ) {
 
             const permission =
@@ -1491,18 +1805,26 @@ async function enableMotion() {
 
 
         window.addEventListener(
+
             "deviceorientation",
+
             handleOrientation,
+
             true
+
         );
 
 
         motionButton
             .classList
-            .add("hidden");
+            .add(
+                "hidden"
+            );
 
 
-    } catch (
+    }
+
+    catch (
         error
     ) {
 
@@ -1516,29 +1838,37 @@ async function enableMotion() {
 
 
 motionButton.addEventListener(
+
     "click",
+
     enableMotion
+
 );
 
 
 /*
 ==============================================================
-TOUCH / MOUSE FALLBACK
+DESKTOP / TOUCH DRAG
 ==============================================================
 */
+
 
 let dragging =
     false;
 
+
 let dragStartX =
     0;
+
 
 let dragStartTilt =
     0;
 
 
 canvas.addEventListener(
+
     "pointerdown",
+
     event => {
 
         dragging =
@@ -1554,15 +1884,20 @@ canvas.addEventListener(
 
 
         canvas.setPointerCapture(
+
             event.pointerId
+
         );
 
     }
+
 );
 
 
 canvas.addEventListener(
+
     "pointermove",
+
     event => {
 
         if (
@@ -1581,36 +1916,111 @@ canvas.addEventListener(
 
         targetTilt =
             clamp(
+
                 dragStartTilt +
                 delta *
                 0.20,
+
                 -CONFIG.maxTilt,
+
                 CONFIG.maxTilt
+
             );
 
     }
+
 );
 
 
 canvas.addEventListener(
+
     "pointerup",
+
     () => {
 
         dragging =
             false;
 
     }
+
 );
 
 
 canvas.addEventListener(
+
     "pointercancel",
+
     () => {
 
         dragging =
             false;
 
     }
+
+);
+
+
+/*
+==============================================================
+KEYBOARD FALLBACK
+==============================================================
+*/
+
+
+window.addEventListener(
+
+    "keydown",
+
+    event => {
+
+        if (
+            event.key ===
+            "ArrowLeft"
+        ) {
+
+            targetTilt =
+                clamp(
+
+                    targetTilt - 2,
+
+                    -45,
+                    45
+
+                );
+
+        }
+
+
+        if (
+            event.key ===
+            "ArrowRight"
+        ) {
+
+            targetTilt =
+                clamp(
+
+                    targetTilt + 2,
+
+                    -45,
+                    45
+
+                );
+
+        }
+
+
+        if (
+            event.key ===
+            "Escape"
+        ) {
+
+            targetTilt =
+                0;
+
+        }
+
+    }
+
 );
 
 
@@ -1620,6 +2030,7 @@ CLAMP
 ==============================================================
 */
 
+
 function clamp(
     value,
     min,
@@ -1627,11 +2038,14 @@ function clamp(
 ) {
 
     return Math.max(
+
         min,
+
         Math.min(
             max,
             value
         )
+
     );
 
 }
@@ -1640,15 +2054,15 @@ function clamp(
 /*
 ==============================================================
 PHYSICS
+==============================================================
 
-Smooth spring-like motion.
+Smooth physical response.
 
-The target is controlled by the
-phone's physical tilt.
-
-The rendered angle follows it smoothly.
+There is intentionally no minimum
+movement threshold.
 ==============================================================
 */
+
 
 function updatePhysics() {
 
@@ -1670,14 +2084,22 @@ function updatePhysics() {
         velocity;
 
 
+    /*
+    Avoid tiny floating point drift.
+    */
+
     if (
+
         Math.abs(
             velocity
-        ) < 0.001 &&
+        ) < 0.0001
+
+        &&
 
         Math.abs(
             difference
-        ) < 0.001
+        ) < 0.0001
+
     ) {
 
         currentTilt =
@@ -1693,9 +2115,10 @@ function updatePhysics() {
 
 /*
 ==============================================================
-RENDER
+RENDER LOOP
 ==============================================================
 */
+
 
 let startTime =
     performance.now();
@@ -1709,15 +2132,21 @@ function render(
 
 
     gl.uniform1f(
+
         uniforms.tilt,
+
         currentTilt
+
     );
 
 
     gl.uniform1f(
+
         uniforms.time,
+
         time -
         startTime
+
     );
 
 
@@ -1739,9 +2168,12 @@ function render(
     ) {
 
         gl.drawArrays(
+
             gl.TRIANGLES,
+
             0,
             6
+
         );
 
     }
@@ -1760,21 +2192,22 @@ ERROR
 ==============================================================
 */
 
+
 function showError(
     message
 ) {
 
-    const element =
+    const error =
         document.getElementById(
             "error"
         );
 
 
-    element.textContent =
+    error.textContent =
         message;
 
 
-    element.style.display =
+    error.style.display =
         "flex";
 
 }
@@ -1786,13 +2219,18 @@ START
 ==============================================================
 */
 
+
 resize();
+
 
 requestAnimationFrame(
     render
 );
 
+
 </script>
 
 </body>
+
 </html>
+```
