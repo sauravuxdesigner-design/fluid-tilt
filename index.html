@@ -6,10 +6,10 @@
 <meta
     name="viewport"
     content="width=device-width,
-             initial-scale=1,
-             maximum-scale=1,
-             user-scalable=no,
-             viewport-fit=cover"
+    initial-scale=1,
+    maximum-scale=1,
+    user-scalable=no,
+    viewport-fit=cover"
 >
 
 <title>Duo Animation</title>
@@ -40,14 +40,14 @@ canvas {
 #permission {
     position: fixed;
     inset: 0;
-    z-index: 20;
+    z-index: 10;
 
     display: flex;
     align-items: center;
     justify-content: center;
 
     background: #000;
-    color: #fff;
+    color: white;
 
     font-family:
         -apple-system,
@@ -58,22 +58,14 @@ canvas {
     text-align: center;
 }
 
-.permission-inner {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
 #start {
-    border: 0;
-    outline: 0;
-
-    padding: 14px 24px;
-
+    border: none;
     border-radius: 999px;
 
-    background: #fff;
-    color: #000;
+    padding: 15px 25px;
+
+    background: white;
+    color: black;
 
     font-size: 16px;
     font-weight: 600;
@@ -82,7 +74,7 @@ canvas {
 .permission-text {
     margin-top: 14px;
 
-    color: rgba(255,255,255,.55);
+    opacity: .55;
 
     font-size: 13px;
 }
@@ -90,26 +82,25 @@ canvas {
 #recalibrate {
     position: fixed;
 
-    z-index: 10;
-
     left: 50%;
     bottom: calc(
-        20px + env(safe-area-inset-bottom)
+        20px +
+        env(safe-area-inset-bottom)
     );
 
     transform: translateX(-50%);
 
+    z-index: 5;
+
     display: none;
 
-    border: 0;
-    outline: 0;
+    border: none;
+    border-radius: 999px;
 
     padding: 9px 16px;
 
-    border-radius: 999px;
-
-    background: rgba(255,255,255,.12);
     color: rgba(255,255,255,.8);
+    background: rgba(255,255,255,.12);
 
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -125,11 +116,11 @@ canvas {
 #error {
     position: fixed;
 
-    z-index: 100;
-
-    top: 20px;
     left: 20px;
     right: 20px;
+    top: 20px;
+
+    z-index: 100;
 
     display: none;
 
@@ -138,7 +129,8 @@ canvas {
     border-radius: 12px;
 
     background: rgba(255,0,0,.85);
-    color: #fff;
+
+    color: white;
 
     font-family: monospace;
     font-size: 12px;
@@ -152,14 +144,9 @@ canvas {
 
 <canvas id="canvas"></canvas>
 
-
-<!-- =====================================================
-     MOTION PERMISSION
-===================================================== -->
-
 <div id="permission">
 
-    <div class="permission-inner">
+    <div>
 
         <button id="start">
             Enable Motion
@@ -173,11 +160,9 @@ canvas {
 
 </div>
 
-
 <button id="recalibrate">
     Recalibrate
 </button>
-
 
 <div id="error"></div>
 
@@ -185,24 +170,27 @@ canvas {
 <script>
 
 /* =========================================================
-   WEBGL SETUP
+   WEBGL
 ========================================================= */
 
 const canvas =
     document.getElementById("canvas");
 
 const gl =
-    canvas.getContext("webgl", {
-        antialias: false,
-        alpha: false,
-        premultipliedAlpha: false
-    });
+    canvas.getContext(
+        "webgl",
+        {
+            antialias: false,
+            alpha: false,
+            premultipliedAlpha: false
+        }
+    );
 
 
 if (!gl) {
 
     showError(
-        "WebGL is not supported on this device."
+        "WebGL is not supported."
     );
 
     throw new Error(
@@ -279,15 +267,18 @@ varying vec2 v_uv;
    CONSTANTS
 --------------------------------------------------------- */
 
-const float GOLDEN_ANGLE =
-    2.39996322972865332;
+const float PI =
+    3.141592653589793;
 
 const float TWO_PI =
-    6.28318530717958648;
+    6.283185307179586;
+
+const float GOLDEN_ANGLE =
+    2.399963229728653;
 
 
 /* =========================================================
-   IMAGE MAPPING
+   IMAGE UV
 ========================================================= */
 
 vec2 imageUV(
@@ -308,7 +299,7 @@ vec2 imageUV(
 
 
     /*
-     * Aspect-ratio cover.
+     * Portrait image cover.
      */
 
     if (
@@ -325,7 +316,8 @@ vec2 imageUV(
             visibleHeight
             + 0.5;
 
-    } else {
+    }
+    else {
 
         float visibleWidth =
             screenAspect /
@@ -343,7 +335,7 @@ vec2 imageUV(
 
 
 /* =========================================================
-   CONTENT SAMPLE
+   IMAGE SAMPLE
 ========================================================= */
 
 vec4 sampleContent(
@@ -351,13 +343,10 @@ vec4 sampleContent(
 ) {
 
     vec2 uv =
-        imageUV(pixel);
+        imageUV(
+            pixel
+        );
 
-
-    /*
-     * Clamp the texture coordinate at the
-     * texture boundary.
-     */
 
     uv =
         clamp(
@@ -378,7 +367,7 @@ vec4 sampleContent(
    HASH
 ========================================================= */
 
-float hash(
+float random(
     vec2 p
 ) {
 
@@ -399,28 +388,36 @@ float hash(
 
 
 /* =========================================================
-   VOGEL DISK BLUR
+   DUO FROST BLUR
 
-   12 effective taps, matching the reference
-   project's current performance iteration.
+   The blur is centered on the projected
+   wallpaper position, not the original
+   screen coordinate.
 ========================================================= */
 
-vec3 vogelBlur(
+vec3 duoBlur(
     vec2 hit,
     float radius
 ) {
 
-    float taps =
+    /*
+     * Reference iteration:
+     * 12 taps.
+     */
+
+    const float taps =
         12.0;
 
 
     float rotation =
-        hash(hit) *
+        random(hit)
+        *
         TWO_PI;
 
 
     vec3 sum =
         vec3(0.0);
+
 
     float weightSum =
         0.0;
@@ -437,7 +434,7 @@ vec3 vogelBlur(
 
 
         /*
-         * Vogel disk.
+         * Vogel disk distribution.
          */
 
         float r =
@@ -463,28 +460,29 @@ vec3 vogelBlur(
             r;
 
 
-        vec2 samplePoint =
+        vec2 p =
             hit +
             offset;
 
 
         /*
-         * Texture coordinates remain safely
-         * inside the screen.
+         * Sample actual projected wallpaper.
          */
 
-        samplePoint =
+        p =
             clamp(
-                samplePoint,
+                p,
                 vec2(0.0),
                 u_resolution
             );
 
 
+        vec4 c =
+            sampleContent(p);
+
+
         sum +=
-            sampleContent(
-                samplePoint
-            ).rgb;
+            c.rgb;
 
 
         weightSum +=
@@ -494,15 +492,12 @@ vec3 vogelBlur(
 
     return
         sum /
-        max(
-            weightSum,
-            1.0
-        );
+        weightSum;
 }
 
 
 /* =========================================================
-   MAIN DUO FOLD PROJECTION
+   MAIN
 ========================================================= */
 
 void main() {
@@ -517,28 +512,27 @@ void main() {
 
 
     /* -----------------------------------------------------
-       TILT
+       SIGNED TILT
     ----------------------------------------------------- */
 
-    float tiltDegrees =
+    float signedTilt =
         clamp(
-            abs(
-                u_tiltDegrees
-            ),
-            0.0,
+            u_tiltDegrees,
+            -45.0,
             45.0
         );
 
 
     float tilt =
         radians(
-            tiltDegrees
+            abs(
+                signedTilt
+            )
         );
 
 
     /*
-     * Zero tilt:
-     * return the original lock screen.
+     * Level phone.
      */
 
     if (
@@ -558,11 +552,6 @@ void main() {
        HINGE
     ----------------------------------------------------- */
 
-    /*
-     * +1 = right hinge
-     * -1 = left hinge
-     */
-
     float isRight =
         step(
             0.0,
@@ -579,7 +568,7 @@ void main() {
 
 
     /*
-     * Direction away from hinge.
+     * Away from hinge.
      */
 
     float side =
@@ -601,8 +590,23 @@ void main() {
         );
 
 
+    /*
+     * Normalize distance.
+     *
+     * 0 = hinge
+     * 1 = opposite edge
+     */
+
+    float normalizedD =
+        d /
+        max(
+            size.x,
+            1.0
+        );
+
+
     /* -----------------------------------------------------
-       TILTED GLASS
+       GLASS POSITION
     ----------------------------------------------------- */
 
     vec2 glass =
@@ -617,7 +621,7 @@ void main() {
 
 
     /* -----------------------------------------------------
-       GLASS / UI PLANE GAP
+       GLASS / PLANE GAP
     ----------------------------------------------------- */
 
     float gap =
@@ -635,7 +639,7 @@ void main() {
 
 
     /* -----------------------------------------------------
-       PERSPECTIVE PROJECTION
+       PERSPECTIVE
     ----------------------------------------------------- */
 
     float depth =
@@ -644,16 +648,16 @@ void main() {
 
 
     /*
-     * The real Duo shader treats this as
-     * invalid geometry.
+     * Do not allow the projected surface
+     * to collapse.
      *
-     * For an iPhone, don't expose a giant
-     * black region. Fall back to the original
-     * screen when the geometry becomes invalid.
+     * Instead, smoothly approach the
+     * original image at the extreme.
      */
 
     if (
-        depth <= 0.001
+        depth <=
+        u_viewDistance * 0.12
     ) {
 
         gl_FragColor =
@@ -681,7 +685,67 @@ void main() {
 
 
     /* -----------------------------------------------------
-       BLUR RADIUS
+       IMPORTANT EDGE PROTECTION
+    ----------------------------------------------------- */
+
+    /*
+     * The reference can produce a missed
+     * projection when folding very far.
+     *
+     * On iPhone we don't want black.
+     *
+     * Blend the projection back toward
+     * the physical screen as it approaches
+     * the edge.
+     */
+
+    float edgeX =
+        smoothstep(
+            0.72,
+            1.0,
+            normalizedD
+        );
+
+
+    float hitOutside =
+        max(
+            max(
+                -hit.x,
+                hit.x - size.x
+            ),
+            max(
+                -hit.y,
+                hit.y - size.y
+            )
+        );
+
+
+    float outsideAmount =
+        smoothstep(
+            0.0,
+            size.x * 0.12,
+            max(
+                hitOutside,
+                0.0
+            )
+        );
+
+
+    /*
+     * Instead of snapping/clamping,
+     * smoothly blend the projection back.
+     */
+
+    hit =
+        mix(
+            hit,
+            fragCoord,
+            outsideAmount * 0.75
+        );
+
+
+    /* -----------------------------------------------------
+       BLUR
     ----------------------------------------------------- */
 
     float radius =
@@ -694,6 +758,22 @@ void main() {
             radius,
             u_maxBlurRadius
         );
+
+
+    /*
+     * Keep the hinge itself sharp.
+     */
+
+    float hingeFade =
+        smoothstep(
+            0.0,
+            size.x * 0.035,
+            d
+        );
+
+
+    radius *=
+        hingeFade;
 
 
     /* -----------------------------------------------------
@@ -712,20 +792,29 @@ void main() {
         );
 
 
+    /*
+     * Slightly soften the darkening near
+     * the hinge.
+     */
+
+    darken *=
+        hingeFade;
+
+
     float attenuation =
         1.0 -
         darken;
 
 
     /* -----------------------------------------------------
-       SHARP REGION
+       SHARP CENTER / HINGE
     ----------------------------------------------------- */
 
     if (
         radius < 0.5
     ) {
 
-        vec4 sharp =
+        vec4 c =
             sampleContent(
                 hit
             );
@@ -733,9 +822,8 @@ void main() {
 
         gl_FragColor =
             vec4(
-                sharp.rgb *
+                c.rgb *
                 attenuation,
-
                 1.0
             );
 
@@ -744,21 +832,51 @@ void main() {
 
 
     /* -----------------------------------------------------
-       DUO FROST / BLUR
+       FROSTED PROJECTED WALLPAPER
     ----------------------------------------------------- */
 
     vec3 blurred =
-        vogelBlur(
+        duoBlur(
             hit,
             radius
         );
 
 
+    /*
+     * Mix in a very small amount of the
+     * projected sharp image.
+     *
+     * This prevents the blur from looking
+     * like a generic CSS blur and preserves
+     * the actual wallpaper structure.
+     */
+
+    vec3 projected =
+        sampleContent(
+            hit
+        ).rgb;
+
+
+    float sharpAmount =
+        0.12 *
+        (1.0 - hingeFade);
+
+
+    vec3 finalColor =
+        mix(
+            blurred,
+            projected,
+            sharpAmount
+        );
+
+
+    finalColor *=
+        attenuation;
+
+
     gl_FragColor =
         vec4(
-            blurred *
-            attenuation,
-
+            finalColor,
             1.0
         );
 }
@@ -819,7 +937,7 @@ function compileShader(
 
 
 /* =========================================================
-   CREATE PROGRAM
+   PROGRAM
 ========================================================= */
 
 const vertexShader =
@@ -886,16 +1004,16 @@ gl.useProgram(
 
 
 /* =========================================================
-   FULL SCREEN QUAD
+   FULLSCREEN QUAD
 ========================================================= */
 
-const vertexBuffer =
+const buffer =
     gl.createBuffer();
 
 
 gl.bindBuffer(
     gl.ARRAY_BUFFER,
-    vertexBuffer
+    buffer
 );
 
 
@@ -918,7 +1036,7 @@ gl.bufferData(
 );
 
 
-const positionLocation =
+const position =
     gl.getAttribLocation(
         program,
         "a_position"
@@ -926,12 +1044,12 @@ const positionLocation =
 
 
 gl.enableVertexAttribArray(
-    positionLocation
+    position
 );
 
 
 gl.vertexAttribPointer(
-    positionLocation,
+    position,
     2,
     gl.FLOAT,
     false,
@@ -941,7 +1059,7 @@ gl.vertexAttribPointer(
 
 
 /* =========================================================
-   UNIFORM LOCATIONS
+   UNIFORMS
 ========================================================= */
 
 const U = {
@@ -1009,7 +1127,7 @@ const U = {
 
 
 /* =========================================================
-   LOCKSCREEN IMAGE
+   IMAGE
 ========================================================= */
 
 const image =
@@ -1156,7 +1274,7 @@ window.addEventListener(
 
 
 /* =========================================================
-   IPHONE MOTION STATE
+   MOTION
 ========================================================= */
 
 let rawGamma =
@@ -1172,36 +1290,24 @@ let currentTilt =
     0;
 
 
-/* =========================================================
-   IPHONE → DUO MAPPING
-========================================================= */
-
 /*
- * Physical iPhone tilt:
- *
- *      -30°       0°       +30°
- *        |         |          |
- *        v         v          v
- *
- * Duo:
- *
- *      -18°       0°       +18°
- *
- *
- * This is intentional.
- *
- * We are NOT making the iPhone physically
- * behave like a foldable.
- *
- * We are using its motion as an input
- * controller for the Duo shader.
+ * Physical iPhone tilt.
  */
 
 const MAX_PHYSICAL_TILT =
-    30.0;
+    30;
+
+
+/*
+ * Maximum virtual Duo angle.
+ *
+ * This is deliberately lower than
+ * the full foldable range because
+ * the iPhone is not physically folding.
+ */
 
 const MAX_DUO_TILT =
-    18.0;
+    18;
 
 
 function updateTargetTilt() {
@@ -1210,10 +1316,6 @@ function updateTargetTilt() {
         rawGamma -
         zeroGamma;
 
-
-    /*
-     * Clamp physical movement.
-     */
 
     const normalized =
         Math.max(
@@ -1227,8 +1329,7 @@ function updateTargetTilt() {
 
 
     /*
-     * Slightly softer response around
-     * the center.
+     * Smooth nonlinear response.
      */
 
     const curved =
@@ -1240,7 +1341,7 @@ function updateTargetTilt() {
             Math.abs(
                 normalized
             ),
-            0.9
+            0.88
         );
 
 
@@ -1249,10 +1350,6 @@ function updateTargetTilt() {
         MAX_DUO_TILT;
 }
 
-
-/* =========================================================
-   DEVICE ORIENTATION
-========================================================= */
 
 function handleOrientation(
     event
@@ -1305,17 +1402,12 @@ document
 
 
 /* =========================================================
-   START MOTION
+   START
 ========================================================= */
 
 async function startMotion() {
 
     try {
-
-        /*
-         * iOS requires permission to be requested
-         * from a user gesture.
-         */
 
         if (
             typeof DeviceOrientationEvent !==
@@ -1367,8 +1459,8 @@ async function startMotion() {
 
 
         /*
-         * Give iPhone a moment to produce
-         * a stable initial gamma value.
+         * Establish current phone position
+         * as the flat/zero position.
          */
 
         setTimeout(
@@ -1421,7 +1513,7 @@ function showError(
 
 
 /* =========================================================
-   RENDER LOOP
+   RENDER
 ========================================================= */
 
 function render() {
@@ -1432,7 +1524,7 @@ function render() {
 
 
     /*
-     * Smooth animation.
+     * Smooth motion.
      */
 
     currentTilt +=
@@ -1445,13 +1537,10 @@ function render() {
 
 
     /*
-     * Duo hinge convention:
+     * Reference convention:
      *
-     * positive angle:
-     * RIGHT hinge
-     *
-     * negative angle:
-     * LEFT hinge
+     * + = right hinge
+     * - = left hinge
      */
 
     const hingeSide =
@@ -1495,7 +1584,7 @@ function render() {
 
 
     /* -----------------------------------------------------
-       CURRENT MOTION
+       CURRENT TILT
     ----------------------------------------------------- */
 
     gl.uniform1f(
@@ -1543,7 +1632,7 @@ let pointerDown =
 
 canvas.addEventListener(
     "pointerdown",
-    function() {
+    () => {
 
         pointerDown =
             true;
@@ -1553,7 +1642,7 @@ canvas.addEventListener(
 
 canvas.addEventListener(
     "pointerup",
-    function() {
+    () => {
 
         pointerDown =
             false;
@@ -1563,7 +1652,7 @@ canvas.addEventListener(
 
 canvas.addEventListener(
     "pointercancel",
-    function() {
+    () => {
 
         pointerDown =
             false;
@@ -1573,7 +1662,7 @@ canvas.addEventListener(
 
 canvas.addEventListener(
     "pointermove",
-    function(event) {
+    event => {
 
         if (!pointerDown)
             return;
