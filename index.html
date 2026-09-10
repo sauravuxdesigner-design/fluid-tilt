@@ -1,4 +1,134 @@
 <!DOCTYPE html>
 <html>
-...
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fluid Tilt</title>
+
+  <style>
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+    }
+
+    #orb {
+      position: absolute;
+
+      width: 220px;
+      height: 220px;
+
+      left: 50%;
+      top: 50%;
+
+      transform: translate(-50%, -50%);
+
+      border-radius: 50%;
+
+      background: radial-gradient(
+        circle at 40% 40%,
+        #ffffff 0%,
+        #8ee7ff 12%,
+        #168cff 35%,
+        #0047ff 55%,
+        transparent 75%
+      );
+
+      filter: blur(25px);
+    }
+
+    #motionButton {
+      position: fixed;
+      z-index: 10;
+
+      top: 30px;
+      left: 50%;
+
+      transform: translateX(-50%);
+
+      padding: 12px 20px;
+
+      border: none;
+      border-radius: 20px;
+
+      font-size: 16px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <button id="motionButton">Enable Motion</button>
+
+  <div id="orb"></div>
+
+
+  <script>
+
+    const orb = document.getElementById("orb");
+    const button = document.getElementById("motionButton");
+
+
+    button.addEventListener("click", async () => {
+
+      if (
+        typeof DeviceOrientationEvent !== "undefined" &&
+        typeof DeviceOrientationEvent.requestPermission === "function"
+      ) {
+
+        const permission =
+          await DeviceOrientationEvent.requestPermission();
+
+        if (permission === "granted") {
+
+          startMotion();
+
+          button.textContent = "Motion Enabled";
+
+        } else {
+
+          button.textContent = "Permission Denied";
+
+        }
+
+      } else {
+
+        startMotion();
+
+        button.textContent = "Motion Enabled";
+
+      }
+
+    });
+
+
+    function startMotion() {
+
+      window.addEventListener(
+        "deviceorientation",
+        (event) => {
+
+          const tilt = event.gamma || 0;
+
+          const movement =
+            Math.max(
+              -1,
+              Math.min(1, tilt / 30)
+            );
+
+          const x = movement * 300;
+
+          orb.style.transform =
+            `translate(calc(-50% + ${x}px), -50%)`;
+
+        }
+      );
+
+    }
+
+  </script>
+
+</body>
 </html>
