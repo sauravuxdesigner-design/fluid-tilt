@@ -1,107 +1,320 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fluid Motion</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+
+  <title>Fluid</title>
 
   <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
     html,
     body {
       margin: 0;
+      padding: 0;
+
       width: 100%;
       height: 100%;
+
       overflow: hidden;
+
       background: #000;
+
+      touch-action: none;
+      user-select: none;
     }
 
-    #scene {
+    body {
       position: fixed;
       inset: 0;
-      overflow: hidden;
     }
+
+    /* Full-screen fluid area */
+
+    #scene {
+      position: absolute;
+      inset: 0;
+
+      width: 100vw;
+      height: 100vh;
+
+      overflow: hidden;
+
+      background:
+        radial-gradient(
+          circle at center,
+          #030914 0%,
+          #000 65%
+        );
+    }
+
+
+    /* Fluid blobs */
 
     .blob {
       position: absolute;
+
       left: 50%;
       top: 50%;
 
-      width: 230px;
-      height: 230px;
+      width: min(65vw, 430px);
+      height: min(65vw, 430px);
 
-      margin-left: -115px;
-      margin-top: -115px;
+      margin-left: calc(min(65vw, 430px) / -2);
+      margin-top: calc(min(65vw, 430px) / -2);
 
       border-radius: 50%;
 
       background:
         radial-gradient(
-          circle at 35% 28%,
+          circle at 34% 27%,
           #ffffff 0%,
-          #d9faff 7%,
-          #72dfff 18%,
-          #168cff 42%,
-          #0047ff 65%,
-          rgba(0, 71, 255, 0) 80%
+          #d8faff 6%,
+          #79e5ff 17%,
+          #168cff 38%,
+          #0047ff 58%,
+          rgba(0, 71, 255, 0) 78%
         );
 
-      filter: blur(17px);
+      filter: blur(20px);
 
       will-change: transform;
+
+      pointer-events: none;
     }
 
     .blob:nth-child(2) {
-      width: 210px;
-      height: 210px;
-      margin-left: -105px;
-      margin-top: -105px;
-      opacity: 0.65;
-      filter: blur(22px);
-    }
+      width: min(58vw, 380px);
+      height: min(58vw, 380px);
 
-    .blob:nth-child(3) {
-      width: 180px;
-      height: 180px;
-      margin-left: -90px;
-      margin-top: -90px;
-      opacity: 0.4;
+      margin-left: calc(min(58vw, 380px) / -2);
+      margin-top: calc(min(58vw, 380px) / -2);
+
+      opacity: 0.65;
+
       filter: blur(28px);
     }
 
-    #motionButton {
+    .blob:nth-child(3) {
+      width: min(48vw, 320px);
+      height: min(48vw, 320px);
+
+      margin-left: calc(min(48vw, 320px) / -2);
+      margin-top: calc(min(48vw, 320px) / -2);
+
+      opacity: 0.42;
+
+      filter: blur(35px);
+    }
+
+
+    /* Soft glow around the fluid */
+
+    #glow {
+      position: absolute;
+
+      left: 50%;
+      top: 50%;
+
+      width: min(75vw, 500px);
+      height: min(75vw, 500px);
+
+      transform: translate(-50%, -50%);
+
+      border-radius: 50%;
+
+      background: rgba(0, 90, 255, 0.16);
+
+      filter: blur(80px);
+
+      pointer-events: none;
+    }
+
+
+    /* Intro overlay */
+
+    #intro {
       position: fixed;
+      inset: 0;
+
       z-index: 20;
 
-      top: 30px;
+      display: flex;
+
+      flex-direction: column;
+
+      align-items: center;
+
+      justify-content: center;
+
+      gap: 18px;
+
+      background: rgba(0, 0, 0, 0.72);
+
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+
+      transition:
+        opacity 0.7s ease,
+        visibility 0.7s ease;
+    }
+
+    #intro.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+
+    #title {
+      color: white;
+
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "SF Pro Display",
+        sans-serif;
+
+      font-size: 28px;
+
+      font-weight: 500;
+
+      letter-spacing: -0.5px;
+    }
+
+
+    #description {
+      color: rgba(255,255,255,0.55);
+
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        sans-serif;
+
+      font-size: 14px;
+
+      text-align: center;
+
+      line-height: 1.5;
+
+      max-width: 260px;
+    }
+
+
+    #motionButton {
+      margin-top: 8px;
+
+      padding: 14px 26px;
+
+      border: none;
+
+      border-radius: 30px;
+
+      background: white;
+
+      color: black;
+
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        sans-serif;
+
+      font-size: 15px;
+
+      font-weight: 500;
+
+      cursor: pointer;
+
+      box-shadow:
+        0 10px 40px rgba(255,255,255,0.12);
+    }
+
+    #motionButton:active {
+      transform: scale(0.96);
+    }
+
+
+    /* Bottom instruction */
+
+    #hint {
+      position: fixed;
+
+      z-index: 10;
+
+      bottom: calc(30px + env(safe-area-inset-bottom));
+
       left: 50%;
 
       transform: translateX(-50%);
 
-      padding: 12px 20px;
+      color: rgba(255,255,255,0.35);
 
-      border: 0;
-      border-radius: 30px;
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        sans-serif;
 
-      background: white;
-      color: black;
+      font-size: 13px;
 
-      font-size: 16px;
+      letter-spacing: 0.2px;
+
+      opacity: 0;
+
+      transition: opacity 1s ease;
+
+      white-space: nowrap;
     }
+
+    #hint.visible {
+      opacity: 1;
+    }
+
   </style>
 </head>
 
+
 <body>
+
 
   <div id="scene">
 
+    <div id="glow"></div>
+
     <div class="blob"></div>
+
     <div class="blob"></div>
+
     <div class="blob"></div>
 
   </div>
 
-  <button id="motionButton">
-    Enable Motion
-  </button>
+
+  <!-- Permission screen -->
+
+  <div id="intro">
+
+    <div id="title">
+      Fluid
+    </div>
+
+    <div id="description">
+      Tilt your phone and watch the fluid respond to your movement.
+    </div>
+
+    <button id="motionButton">
+      Begin Experience
+    </button>
+
+  </div>
+
+
+  <div id="hint">
+    Tilt your phone
+  </div>
 
 
   <script>
@@ -109,78 +322,121 @@
     const blobs =
       document.querySelectorAll(".blob");
 
+    const intro =
+      document.getElementById("intro");
+
     const button =
       document.getElementById("motionButton");
 
+    const hint =
+      document.getElementById("hint");
+
 
     /*
-      Each blob has its own
-      delayed position.
+      Fluid positions
     */
 
     const positions = [
+
       { x: 0, y: 0 },
+
       { x: 0, y: 0 },
+
       { x: 0, y: 0 }
+
     ];
 
 
     let targetX = 0;
     let targetY = 0;
 
+
+    let currentX = 0;
+    let currentY = 0;
+
+
+    let previousX = 0;
+    let previousY = 0;
+
+
     let velocityX = 0;
     let velocityY = 0;
 
+
+    /*
+      Start experience
+    */
 
     button.addEventListener(
       "click",
       async () => {
 
-        if (
-          typeof DeviceOrientationEvent !== "undefined" &&
-          typeof DeviceOrientationEvent.requestPermission === "function"
-        ) {
+        try {
 
-          try {
+          if (
+            typeof DeviceOrientationEvent !== "undefined" &&
+            typeof DeviceOrientationEvent.requestPermission === "function"
+          ) {
 
             const permission =
               await DeviceOrientationEvent.requestPermission();
 
-            if (permission === "granted") {
 
-              startMotion();
-
-              button.textContent =
-                "Motion Enabled";
-
-            } else {
+            if (permission !== "granted") {
 
               button.textContent =
-                "Permission Denied";
+                "Motion Permission Needed";
+
+              return;
 
             }
 
-          } catch (error) {
-
-            console.error(error);
-
-            button.textContent =
-              "Motion Error";
-
           }
 
-        } else {
 
           startMotion();
 
-          button.textContent =
-            "Motion Enabled";
+          /*
+            Hide intro
+          */
+
+          intro.classList.add("hidden");
+
+          /*
+            Show hint
+          */
+
+          setTimeout(() => {
+
+            hint.classList.add("visible");
+
+          }, 700);
+
+
+          /*
+            Hide hint after a few seconds
+          */
+
+          setTimeout(() => {
+
+            hint.classList.remove("visible");
+
+          }, 4500);
+
+
+        } catch (error) {
+
+          console.error(error);
 
         }
 
       }
     );
 
+
+    /*
+      Motion sensor
+    */
 
     function startMotion() {
 
@@ -196,32 +452,45 @@
 
 
           /*
-            Horizontal movement
+            Horizontal tilt
           */
 
           const horizontal =
             Math.max(
               -1,
-              Math.min(1, gamma / 30)
+              Math.min(
+                1,
+                gamma / 35
+              )
             );
 
 
           /*
-            Vertical movement
+            Vertical tilt
+
+            45 degrees =
+            neutral position
           */
 
           const vertical =
             Math.max(
               -1,
-              Math.min(1, (beta - 45) / 30)
+              Math.min(
+                1,
+                (beta - 45) / 35
+              )
             );
 
 
+          /*
+            Target position
+          */
+
           targetX =
-            horizontal * 260;
+            horizontal * 300;
 
           targetY =
-            vertical * 100;
+            vertical * 140;
 
         }
       );
@@ -232,67 +501,76 @@
     }
 
 
+    /*
+      Animation loop
+    */
+
     function animate() {
 
+
       /*
-        Main blob
+        Main fluid
       */
 
-      positions[0].x +=
-        (targetX - positions[0].x) * 0.12;
+      currentX +=
+        (targetX - currentX) * 0.075;
 
-      positions[0].y +=
-        (targetY - positions[0].y) * 0.12;
-
-
-      /*
-        Second blob follows slower
-      */
-
-      positions[1].x +=
-        (positions[0].x - positions[1].x) * 0.08;
-
-      positions[1].y +=
-        (positions[0].y - positions[1].y) * 0.08;
+      currentY +=
+        (targetY - currentY) * 0.075;
 
 
       /*
-        Third blob follows even slower
-      */
-
-      positions[2].x +=
-        (positions[1].x - positions[2].x) * 0.05;
-
-      positions[2].y +=
-        (positions[1].y - positions[2].y) * 0.05;
-
-
-      /*
-        Calculate velocity.
-
-        This gives us the feeling
-        of liquid being pulled.
+        Calculate velocity
       */
 
       velocityX =
-        positions[0].x - positions[1].x;
+        currentX - previousX;
 
       velocityY =
-        positions[0].y - positions[1].y;
+        currentY - previousY;
 
+
+      previousX =
+        currentX;
+
+      previousY =
+        currentY;
+
+
+      const speed =
+        Math.sqrt(
+          velocityX * velocityX +
+          velocityY * velocityY
+        );
+
+
+      /*
+        Fluid stretch
+      */
 
       const stretch =
         Math.min(
-          1.45,
-          1 + Math.abs(velocityX) * 0.004
+          1.75,
+          1 + speed * 0.035
         );
 
 
       const squash =
         Math.max(
-          0.72,
-          1 - Math.abs(velocityX) * 0.0015
+          0.68,
+          1 - speed * 0.012
         );
+
+
+      /*
+        Direction angle
+      */
+
+      const angle =
+        Math.atan2(
+          velocityY,
+          velocityX
+        ) * 180 / Math.PI;
 
 
       /*
@@ -301,38 +579,55 @@
 
       blobs[0].style.transform = `
         translate(
-          ${positions[0].x}px,
-          ${positions[0].y}px
+          ${currentX}px,
+          ${currentY}px
         )
+        rotate(${angle}deg)
         scaleX(${stretch})
         scaleY(${squash})
       `;
 
 
       /*
-        Middle liquid
+        Second blob follows behind
       */
+
+      positions[1].x +=
+        (currentX - positions[1].x) * 0.055;
+
+      positions[1].y +=
+        (currentY - positions[1].y) * 0.055;
+
 
       blobs[1].style.transform = `
         translate(
           ${positions[1].x}px,
           ${positions[1].y}px
         )
-        scaleX(${1 + stretch * 0.15})
-        scaleY(${1 - (stretch - 1) * 0.2})
+        rotate(${angle}deg)
+        scaleX(${1 + (stretch - 1) * 0.7})
+        scaleY(${1 - (stretch - 1) * 0.25})
       `;
 
 
       /*
-        Outer liquid trail
+        Third blob follows even slower
       */
+
+      positions[2].x +=
+        (positions[1].x - positions[2].x) * 0.035;
+
+      positions[2].y +=
+        (positions[1].y - positions[2].y) * 0.035;
+
 
       blobs[2].style.transform = `
         translate(
           ${positions[2].x}px,
           ${positions[2].y}px
         )
-        scaleX(${1 + stretch * 0.08})
+        rotate(${angle}deg)
+        scaleX(${1 + (stretch - 1) * 0.4})
         scaleY(${1 - (stretch - 1) * 0.15})
       `;
 
