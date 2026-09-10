@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
 <meta charset="UTF-8">
 
@@ -15,7 +14,7 @@
   "
 >
 
-<title>Duo Tilt</title>
+<title>Duo Fold</title>
 
 <style>
 
@@ -29,12 +28,15 @@ body {
   width: 100%;
   height: 100%;
   overflow: hidden;
+
   background: #000;
+
   touch-action: none;
 }
 
 canvas {
   position: fixed;
+
   inset: 0;
 
   width: 100%;
@@ -43,21 +45,26 @@ canvas {
   display: block;
 }
 
+
 /* ---------------------------------------------------------
-   Motion permission
+   Permission
 --------------------------------------------------------- */
 
 #permission {
+
   position: fixed;
+
   inset: 0;
 
-  z-index: 10;
+  z-index: 20;
 
   display: flex;
+
   align-items: center;
   justify-content: center;
 
   background: #000;
+
   color: #fff;
 
   font-family:
@@ -69,37 +76,44 @@ canvas {
   text-align: center;
 }
 
+
 #start {
+
   border: 0;
-  border-radius: 999px;
 
   padding: 15px 25px;
 
+  border-radius: 999px;
+
   background: #fff;
+
   color: #000;
 
   font-size: 16px;
+
   font-weight: 600;
 
-  cursor: pointer;
 }
+
 
 .permission-text {
+
   margin-top: 14px;
 
-  opacity: .55;
+  opacity: .5;
 
   font-size: 13px;
+
 }
+
 
 /* ---------------------------------------------------------
    Recalibrate
 --------------------------------------------------------- */
 
 #recalibrate {
-  position: fixed;
 
-  z-index: 5;
+  position: fixed;
 
   left: 50%;
 
@@ -112,9 +126,12 @@ canvas {
   transform:
     translateX(-50%);
 
+  z-index: 10;
+
   display: none;
 
   border: 0;
+
   border-radius: 999px;
 
   padding: 9px 16px;
@@ -148,21 +165,22 @@ canvas {
 
   font-size: 12px;
 
-  cursor: pointer;
 }
+
 
 /* ---------------------------------------------------------
    Error
 --------------------------------------------------------- */
 
 #error {
-  position: fixed;
 
-  z-index: 100;
+  position: fixed;
 
   left: 20px;
   right: 20px;
   top: 20px;
+
+  z-index: 100;
 
   display: none;
 
@@ -178,13 +196,14 @@ canvas {
       .85
     );
 
-  color: #fff;
+  color: white;
 
   font-family: monospace;
 
   font-size: 12px;
 
   white-space: pre-wrap;
+
 }
 
 </style>
@@ -205,7 +224,7 @@ canvas {
     </button>
 
     <div class="permission-text">
-      Allow motion access to control the Duo effect.
+      Allow motion access to control the fold.
     </div>
 
   </div>
@@ -247,7 +266,7 @@ const gl =
 if (!gl) {
 
   throw new Error(
-    "WebGL unavailable"
+    "WebGL is not available."
   );
 
 }
@@ -300,8 +319,6 @@ uniform float u_imageAspect;
 
 uniform float u_tiltDegrees;
 
-uniform float u_hingeSide;
-
 uniform float u_eyeDistance;
 
 uniform float u_blurSpread;
@@ -312,10 +329,6 @@ uniform float u_darkening;
 varying vec2 v_uv;
 
 
-/* ---------------------------------------------------------
-   Constants
---------------------------------------------------------- */
-
 const float GOLDEN_ANGLE =
   2.399963229728653;
 
@@ -323,9 +336,9 @@ const float TWO_PI =
   6.283185307179586;
 
 
-/* ---------------------------------------------------------
-   Convert screen coordinate to image UV
---------------------------------------------------------- */
+/* =========================================================
+   IMAGE MAPPING
+========================================================= */
 
 vec2 imageUV(
   vec2 p
@@ -342,8 +355,7 @@ vec2 imageUV(
 
 
   /*
-   * Cover image exactly like a
-   * background image.
+   * Cover the complete phone screen.
    */
 
   if (
@@ -388,237 +400,62 @@ vec2 imageUV(
   }
 
 
-  return uv;
-
-}
-
-
-/* ---------------------------------------------------------
-   Safe image sampling
---------------------------------------------------------- */
-
-vec4 content(
-  vec2 p
-) {
-
-  /*
-   * IMPORTANT:
-   *
-   * Never allow the texture coordinate to
-   * become an exposed black region.
-   */
-
-  vec2 safeP =
-    clamp(
-      p,
-      vec2(
-        0.0
-      ),
-      u_resolution
-    );
-
-
-  vec2 uv =
-    imageUV(
-      safeP
-    );
-
-
-  /*
-   * Second safety clamp.
-   */
-
-  uv =
-    clamp(
-      uv,
-      vec2(
-        0.0
-      ),
-      vec2(
-        1.0
-      )
-    );
-
-
-  return texture2D(
-    u_image,
-    uv
+  return clamp(
+    uv,
+    vec2(0.0),
+    vec2(1.0)
   );
 
 }
 
 
-/* ---------------------------------------------------------
-   Soft continuation outside the screen
---------------------------------------------------------- */
+/* =========================================================
+   IMAGE SAMPLE
+========================================================= */
 
-vec2 continueProjection(
+vec4 sampleImage(
   vec2 p
 ) {
 
-  /*
-   * Instead of allowing the physical projection
-   * to disappear into black space, compress the
-   * outside portion progressively back toward
-   * the screen edge.
-   *
-   * This creates a stretched/frosted continuation.
-   */
-
-  vec2 result =
-    p;
+  vec2 safe =
+    clamp(
+      p,
+      vec2(0.0),
+      u_resolution
+    );
 
 
-  const float softness =
-    0.35;
-
-
-  if (
-    result.x < 0.0
-  ) {
-
-    result.x =
-      -log(
-        1.0 -
-        result.x *
-        softness /
-        u_resolution.x
-      )
-      /
-      softness *
-      u_resolution.x;
-
-    result.x =
-      min(
-        result.x,
-        0.0
-      );
-
-  }
-
-
-  if (
-    result.x >
-    u_resolution.x
-  ) {
-
-    float outside =
-      result.x -
-      u_resolution.x;
-
-
-    result.x =
-      u_resolution.x -
-      (
-        outside /
-        (
-          1.0 +
-          outside *
-          softness /
-          u_resolution.x
-        )
-      );
-
-  }
-
-
-  return result;
+  return texture2D(
+    u_image,
+    imageUV(safe)
+  );
 
 }
 
 
-/* ---------------------------------------------------------
-   Main
---------------------------------------------------------- */
+/* =========================================================
+   DUO FRONT-PLANE SAMPLE
+========================================================= */
 
-void main() {
+vec3 duoSample(
+  vec2 fragCoord,
+  float hingeX,
+  float side,
+  float tilt,
+  float eyeDistance,
+  float blurSpread,
+  float darkening
+) {
 
   vec2 size =
     u_resolution;
 
 
-  vec2 fragCoord =
-    v_uv *
-    size;
-
-
-  /* =======================================================
-     TILT
-  ======================================================= */
-
-  float tiltDegrees =
-    clamp(
-      abs(
-        u_tiltDegrees
-      ),
-      0.0,
-      45.0
-    );
-
-
-  float tilt =
-    radians(
-      tiltDegrees
-    );
-
-
   /*
-   * No tilt:
-   * show the original image perfectly sharp.
-   */
-
-  if (
-    tilt <
-    0.00001
-  ) {
-
-    gl_FragColor =
-      content(
-        fragCoord
-      );
-
-    return;
-
-  }
-
-
-  /* =======================================================
-     HINGE
-  ======================================================= */
-
-  float isRight =
-    step(
-      0.0,
-      u_hingeSide
-    );
-
-
-  /*
-   * Right hinge:
-   * fold spreads toward LEFT.
+   * Distance from the hinge.
    *
-   * Left hinge:
-   * fold spreads toward RIGHT.
-   */
-
-  float hingeX =
-    mix(
-      0.0,
-      size.x,
-      isRight
-    );
-
-
-  float side =
-    mix(
-      1.0,
-      -1.0,
-      isRight
-    );
-
-
-  /*
-   * Distance from hinge.
+   * This is the same fundamental measurement
+   * used by the reference implementation.
    */
 
   float d =
@@ -628,61 +465,48 @@ void main() {
     );
 
 
-  /* =======================================================
-     VIRTUAL GLASS
-  ======================================================= */
+  /*
+   * Virtual glass position.
+   */
 
   vec2 glass =
     vec2(
       hingeX +
       side *
       d *
-      cos(
-        tilt
-      ),
+      cos(tilt),
 
       fragCoord.y
     );
 
 
   /*
-   * Distance between virtual glass
-   * and original image plane.
+   * Glass-to-screen-plane separation.
    */
 
   float gap =
     d *
-    sin(
-      tilt
-    );
+    sin(tilt);
 
 
-  /* =======================================================
-     EYE
-  ======================================================= */
+  /*
+   * Stationary eye.
+   */
 
   vec2 eye =
     size *
     0.5;
 
 
-  /* =======================================================
-     SAFE DEPTH
-  ======================================================= */
-
   /*
-   * The original physical Duo shader can
-   * reach an invalid depth and intentionally
-   * output black.
+   * Ray continuation.
    *
-   * We don't want that on the iPhone.
-   *
-   * Instead, keep a minimum usable depth.
+   * This is the core of the DuoFold model.
    */
 
   float depth =
     max(
-      u_eyeDistance -
+      eyeDistance -
       gap,
 
       2.0
@@ -690,122 +514,98 @@ void main() {
 
 
   float t =
-    u_eyeDistance /
+    eyeDistance /
     depth;
 
-
-  /* =======================================================
-     RAY / PLANE INTERSECTION
-  ======================================================= */
 
   vec2 hit =
     eye +
     (
       glass -
       eye
-    ) *
+    )
+    *
     t;
 
 
   /*
-   * Continue the projection instead of
-   * exposing the backside.
+   * Keep the front screen attached.
+   *
+   * We intentionally do NOT allow the wallpaper
+   * to disappear when the projected ray passes
+   * outside the image.
    */
 
-  vec2 continuedHit =
-    continueProjection(
-      hit
+  hit.x =
+    clamp(
+      hit.x,
+      0.0,
+      size.x
+    );
+
+
+  hit.y =
+    clamp(
+      hit.y,
+      0.0,
+      size.y
     );
 
 
   /*
-   * Final safe coordinate.
+   * Blur increases according to physical separation.
+   *
+   * Reference tuning:
+   *
+   * eye distance = 320
+   * blur spread = 0.55
    */
-
-  vec2 safeHit =
-    clamp(
-      continuedHit,
-      vec2(
-        0.0
-      ),
-      size
-    );
-
-
-  /* =======================================================
-     BLUR
-  ======================================================= */
 
   float radius =
-    u_blurSpread *
-    gap;
-
-
-  /*
-   * Prevent enormous blur.
-   *
-   * This keeps the phone simulation
-   * visually usable at extreme angles.
-   */
-
-  radius =
     min(
-      radius,
+      blurSpread *
+      gap,
+
       24.0
     );
 
 
-  /* =======================================================
-     DARKENING
-  ======================================================= */
+  /*
+   * Darkening.
+   */
 
   float attenuation =
     max(
       1.0 -
-      u_darkening *
+      darkening *
       radius,
 
-      0.0
-    );
-
-
-  /*
-   * Slightly stronger frost at large
-   * separation, while never allowing
-   * the screen to disappear.
-   */
-
-  attenuation =
-    max(
-      attenuation,
       0.45
     );
 
 
-  /* =======================================================
-     SHARP AREA
-  ======================================================= */
+  /*
+   * Close to hinge = sharp.
+   */
 
   if (
     radius <
     0.5
   ) {
 
-    gl_FragColor =
-      content(
-        safeHit
-      )
+    return
+      sampleImage(
+        hit
+      ).rgb
       *
       attenuation;
-
-    return;
 
   }
 
 
-  /* =======================================================
-     VOGEL DISK BLUR
-  ======================================================= */
+  /*
+   * Vogel disk blur.
+   */
 
   float taps =
     clamp(
@@ -836,9 +636,7 @@ void main() {
 
 
   vec3 sum =
-    vec3(
-      0.0
-    );
+    vec3(0.0);
 
 
   float weightSum =
@@ -855,10 +653,6 @@ void main() {
       float(i);
 
 
-    /*
-     * Ignore unused samples.
-     */
-
     float weight =
       1.0 -
       step(
@@ -866,10 +660,6 @@ void main() {
         fi
       );
 
-
-    /*
-     * Vogel disk distribution.
-     */
 
     float r =
       radius *
@@ -892,41 +682,26 @@ void main() {
     vec2 offset =
       r *
       vec2(
-        cos(
-          angle
-        ),
-        sin(
-          angle
-        )
+        cos(angle),
+        sin(angle)
       );
 
 
-    vec2 samplePosition =
-      safeHit +
+    vec2 p =
+      hit +
       offset;
 
 
-    /*
-     * IMPORTANT:
-     *
-     * Never allow blur samples to create
-     * a black region outside the image.
-     */
-
-    samplePosition =
+    p =
       clamp(
-        samplePosition,
-        vec2(
-          0.0
-        ),
+        p,
+        vec2(0.0),
         size
       );
 
 
     sum +=
-      content(
-        samplePosition
-      ).rgb
+      sampleImage(p).rgb
       *
       weight;
 
@@ -937,23 +712,341 @@ void main() {
   }
 
 
-  vec3 average =
-    sum /
-    max(
-      weightSum,
-      1.0
+  return
+    (
+      sum /
+      max(
+        weightSum,
+        1.0
+      )
+    )
+    *
+    attenuation;
+
+}
+
+
+/* =========================================================
+   MAIN
+========================================================= */
+
+void main() {
+
+  vec2 size =
+    u_resolution;
+
+
+  vec2 fragCoord =
+    v_uv *
+    size;
+
+
+  float signedTilt =
+    u_tiltDegrees;
+
+
+  float tiltAmount =
+    clamp(
+      abs(
+        signedTilt
+      ),
+      0.0,
+      45.0
     );
 
 
-  /* =======================================================
-     FINAL
-  ======================================================= */
+  float tilt =
+    radians(
+      tiltAmount
+    );
+
+
+  /*
+   * -------------------------------------------------------
+   * FLAT SCREEN
+   * -------------------------------------------------------
+   */
+
+  if (
+    tilt <
+    0.0001
+  ) {
+
+    gl_FragColor =
+      sampleImage(
+        fragCoord
+      );
+
+    return;
+
+  }
+
+
+  /*
+   * -------------------------------------------------------
+   * HINGE
+   * -------------------------------------------------------
+   *
+   * Positive tilt:
+   * right hinge.
+   *
+   * Negative tilt:
+   * left hinge.
+   */
+
+  float hingeOnRight =
+    step(
+      0.0,
+      signedTilt
+    );
+
+
+  float hingeX =
+    mix(
+      0.0,
+      size.x,
+      hingeOnRight
+    );
+
+
+  float side =
+    mix(
+      1.0,
+      -1.0,
+      hingeOnRight
+    );
+
+
+  /*
+   * -------------------------------------------------------
+   * FRONT WALLPAPER
+   * -------------------------------------------------------
+   *
+   * This is the important part.
+   *
+   * The entire screen remains occupied by the wallpaper.
+   * The wallpaper is NOT rotated as one rectangular card.
+   *
+   * Only the projected content is distorted.
+   */
+
+  vec3 front =
+    duoSample(
+      fragCoord,
+      hingeX,
+      side,
+      tilt,
+      320.0,
+      0.55,
+      0.012
+    );
+
+
+  /*
+   * -------------------------------------------------------
+   * HINGE DISTANCE
+   * -------------------------------------------------------
+   */
+
+  float distanceFromHinge =
+    abs(
+      fragCoord.x -
+      hingeX
+    );
+
+
+  /*
+   * Normalize distance.
+   */
+
+  float normalizedDistance =
+    distanceFromHinge /
+    size.x;
+
+
+  /*
+   * -------------------------------------------------------
+   * FOLD DEPTH
+   * -------------------------------------------------------
+   *
+   * This is not a card rotation.
+   *
+   * It creates the visual impression that a dark
+   * second surface is sitting behind the front screen.
+   */
+
+  float foldStrength =
+    sin(
+      tilt
+    );
+
+
+  /*
+   * Strongest close to the hinge.
+   */
+
+  float hingeMask =
+    1.0 -
+    smoothstep(
+      0.0,
+      0.18,
+      normalizedDistance
+    );
+
+
+  /*
+   * At the extreme hinge edge we create a subtle
+   * dark folded-body contribution.
+   */
+
+  float foldBody =
+    smoothstep(
+      0.82,
+      1.0,
+      normalizedDistance
+    )
+    *
+    foldStrength;
+
+
+  /*
+   * -------------------------------------------------------
+   * EDGE-BACKSIDE SHADOW
+   * -------------------------------------------------------
+   *
+   * The reference image has black visible beyond the
+   * front panel at the upper/lower hinge-side corners.
+   *
+   * We reproduce that visual cue WITHOUT covering
+   * the main wallpaper.
+   *
+   * It stays narrow.
+   */
+
+  float edgeDistance =
+    min(
+      fragCoord.y,
+      size.y -
+      fragCoord.y
+    );
+
+
+  float edgeMask =
+    1.0 -
+    smoothstep(
+      0.0,
+      size.y * 0.14,
+      edgeDistance
+    );
+
+
+  float backside =
+    foldStrength *
+    foldBody *
+    edgeMask;
+
+
+  /*
+   * -------------------------------------------------------
+   * HINGE SHADOW
+   * -------------------------------------------------------
+   *
+   * Very subtle darkening immediately beside the hinge.
+   */
+
+  float hingeShadow =
+    foldStrength *
+    hingeMask *
+    0.10;
+
+
+  front *=
+    1.0 -
+    hingeShadow;
+
+
+  /*
+   * -------------------------------------------------------
+   * BACKSIDE COLOR
+   * -------------------------------------------------------
+   */
+
+  vec3 backsideColor =
+    vec3(
+      0.005,
+      0.006,
+      0.008
+    );
+
+
+  /*
+   * -------------------------------------------------------
+   * COMPOSITE
+   * -------------------------------------------------------
+   *
+   * The wallpaper remains the dominant surface.
+   *
+   * The dark fold is only visible as a narrow physical
+   * cue around the hinge/edge.
+   */
+
+  float blackAmount =
+    clamp(
+      backside *
+      0.72,
+
+      0.0,
+      0.72
+    );
+
+
+  vec3 result =
+    mix(
+      front,
+      backsideColor,
+      blackAmount
+    );
+
+
+  /*
+   * -------------------------------------------------------
+   * KEEP SCREEN EDGES CONNECTED
+   * -------------------------------------------------------
+   *
+   * At the physical left/right screen boundary the
+   * wallpaper must remain attached.
+   *
+   * Therefore the black fold never completely replaces
+   * the edge pixels.
+   */
+
+  float screenEdge =
+    min(
+      fragCoord.x,
+      size.x -
+      fragCoord.x
+    );
+
+
+  float edgeProtect =
+    smoothstep(
+      0.0,
+      12.0,
+      screenEdge
+    );
+
+
+  result =
+    mix(
+      front,
+      result,
+      edgeProtect
+    );
+
 
   gl_FragColor =
     vec4(
-      average *
-      attenuation,
-
+      result,
       1.0
     );
 
@@ -963,7 +1056,7 @@ void main() {
 
 
 /* =========================================================
-   SHADER COMPILATION
+   SHADER COMPILER
 ========================================================= */
 
 function compileShader(
@@ -995,19 +1088,19 @@ function compileShader(
     )
   ) {
 
-    const message =
+    const error =
       gl.getShaderInfoLog(
         shader
       );
 
 
     showError(
-      message
+      error
     );
 
 
     throw new Error(
-      message
+      error
     );
 
   }
@@ -1099,7 +1192,6 @@ gl.bufferData(
 
     -1, -1,
      1, -1,
-
     -1,  1,
 
     -1,  1,
@@ -1156,12 +1248,6 @@ const U = {
     gl.getUniformLocation(
       program,
       "u_tiltDegrees"
-    ),
-
-  hingeSide:
-    gl.getUniformLocation(
-      program,
-      "u_hingeSide"
     ),
 
   eyeDistance:
@@ -1236,11 +1322,6 @@ image.onload =
     );
 
 
-    /*
-     * Edge pixels are repeated rather than
-     * producing black outside the texture.
-     */
-
     gl.texParameteri(
       gl.TEXTURE_2D,
       gl.TEXTURE_WRAP_S,
@@ -1291,7 +1372,6 @@ function resize() {
     Math.min(
       window.devicePixelRatio ||
       1,
-
       2
     );
 
@@ -1350,7 +1430,7 @@ window.addEventListener(
 
 
 /* =========================================================
-   IPHONE MOTION
+   MOTION
 ========================================================= */
 
 let rawGamma =
@@ -1366,40 +1446,11 @@ let currentTilt =
   0;
 
 
-/*
- * Same controller range as the
- * Duo reference.
- */
-
-const MAX_PHONE_TILT =
+const MAX_TILT =
   45;
 
 
-function updateTilt() {
-
-  const relative =
-    rawGamma -
-    zeroGamma;
-
-
-  targetTilt =
-    Math.max(
-      -MAX_PHONE_TILT,
-
-      Math.min(
-        MAX_PHONE_TILT,
-        relative
-      )
-    );
-
-}
-
-
-/* =========================================================
-   ORIENTATION
-========================================================= */
-
-function handleOrientation(
+function orientationHandler(
   event
 ) {
 
@@ -1417,24 +1468,28 @@ function handleOrientation(
     event.gamma;
 
 
-  updateTilt();
+  targetTilt =
+    Math.max(
+      -MAX_TILT,
+
+      Math.min(
+        MAX_TILT,
+
+        rawGamma -
+        zeroGamma
+      )
+    );
 
 }
 
-
-/* =========================================================
-   CALIBRATION
-========================================================= */
 
 function calibrate() {
 
   zeroGamma =
     rawGamma;
 
-
   targetTilt =
     0;
-
 
   currentTilt =
     0;
@@ -1442,28 +1497,13 @@ function calibrate() {
 }
 
 
-document
-  .getElementById(
-    "recalibrate"
-  )
-  .addEventListener(
-    "click",
-    calibrate
-  );
-
-
 /* =========================================================
-   START MOTION
+   START
 ========================================================= */
 
 async function startMotion() {
 
   try {
-
-    /*
-     * iOS requires permission to be requested
-     * from a user interaction.
-     */
 
     if (
       typeof DeviceOrientationEvent !==
@@ -1473,7 +1513,7 @@ async function startMotion() {
 
       typeof DeviceOrientationEvent
         .requestPermission ===
-        "function"
+      "function"
     ) {
 
       const permission =
@@ -1497,7 +1537,7 @@ async function startMotion() {
 
     window.addEventListener(
       "deviceorientation",
-      handleOrientation,
+      orientationHandler,
       true
     );
 
@@ -1518,12 +1558,6 @@ async function startMotion() {
       "block";
 
 
-    /*
-     * Give the phone a moment to settle,
-     * then establish its current position
-     * as zero.
-     */
-
     setTimeout(
       calibrate,
       700
@@ -1531,9 +1565,7 @@ async function startMotion() {
 
   }
 
-  catch (
-    error
-  ) {
+  catch (error) {
 
     showError(
       error.message ||
@@ -1555,6 +1587,16 @@ document
   );
 
 
+document
+  .getElementById(
+    "recalibrate"
+  )
+  .addEventListener(
+    "click",
+    calibrate
+  );
+
+
 /* =========================================================
    ERROR
 ========================================================= */
@@ -1563,17 +1605,17 @@ function showError(
   message
 ) {
 
-  const box =
+  const element =
     document.getElementById(
       "error"
     );
 
 
-  box.textContent =
+  element.textContent =
     message;
 
 
-  box.style.display =
+  element.style.display =
     "block";
 
 }
@@ -1591,7 +1633,7 @@ function render() {
 
 
   /*
-   * Smooth response.
+   * Smooth physical response.
    */
 
   currentTilt +=
@@ -1606,52 +1648,8 @@ function render() {
   /*
    * Reference convention:
    *
-   * positive = right hinge
-   * negative = left hinge
-   */
-
-  const hingeSide =
-    currentTilt >= 0
-      ? 1
-      : -1;
-
-
-  /* =======================================================
-     REFERENCE PARAMETERS
-  ======================================================= */
-
-  /*
-   * Eye distance
-   */
-
-  gl.uniform1f(
-    U.eyeDistance,
-    320.0
-  );
-
-
-  /*
-   * Blur spread
-   */
-
-  gl.uniform1f(
-    U.blurSpread,
-    0.55
-  );
-
-
-  /*
-   * Frost darkening
-   */
-
-  gl.uniform1f(
-    U.darkening,
-    0.012
-  );
-
-
-  /*
-   * Current phone tilt
+   * + = right hinge
+   * - = left hinge
    */
 
   gl.uniform1f(
@@ -1660,19 +1658,23 @@ function render() {
   );
 
 
-  /*
-   * Left/right hinge
-   */
-
   gl.uniform1f(
-    U.hingeSide,
-    hingeSide
+    U.eyeDistance,
+    320.0
   );
 
 
-  /* =======================================================
-     TEXTURE
-  ======================================================= */
+  gl.uniform1f(
+    U.blurSpread,
+    0.55
+  );
+
+
+  gl.uniform1f(
+    U.darkening,
+    0.012
+  );
+
 
   gl.activeTexture(
     gl.TEXTURE0
@@ -1684,10 +1686,6 @@ function render() {
     texture
   );
 
-
-  /* =======================================================
-     DRAW
-  ======================================================= */
 
   gl.drawArrays(
     gl.TRIANGLES,
