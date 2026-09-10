@@ -1,1095 +1,1100 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-
+<meta charset="UTF-8">
 <meta name="viewport"
-content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+      content="width=device-width,
+               initial-scale=1,
+               maximum-scale=1,
+               user-scalable=no,
+               viewport-fit=cover">
 
-<meta name="theme-color" content="#000000">
-
-<title>Spatial Lock Screen</title>
+<title>Duo Lock Screen</title>
 
 <style>
-
-* {
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
-}
-
-html,
-body {
-  margin: 0;
-  padding: 0;
-
-  width: 100%;
-  height: 100%;
-
-  overflow: hidden;
-
-  background: #000;
-}
-
-body {
-  position: fixed;
-  inset: 0;
-}
-
-canvas {
-  position: fixed;
-
-  inset: 0;
-
-  width: 100%;
-  height: 100%;
-
-  display: block;
-}
-
-
-/* ==============================
-   START SCREEN
-============================== */
-
-#intro {
-
-  position: fixed;
-
-  inset: 0;
-
-  z-index: 10;
-
-  display: flex;
-
-  flex-direction: column;
-
-  align-items: center;
-
-  justify-content: center;
-
-  background:
-    rgba(0,0,0,0.62);
-
-  backdrop-filter:
-    blur(20px);
-
-  -webkit-backdrop-filter:
-    blur(20px);
-
-  color: white;
-
-  font-family:
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
-
-  text-align: center;
-
-  transition:
-    opacity .8s ease;
-
-}
-
-#intro.hidden {
-
-  opacity: 0;
-
-  pointer-events: none;
-
-}
-
-#intro h1 {
-
-  margin: 0;
-
-  font-size: 30px;
-
-  font-weight: 500;
-
-}
-
-#intro p {
-
-  width: 280px;
-
-  margin:
-    12px 0 25px;
-
-  color:
-    rgba(255,255,255,.55);
-
-  font-size: 14px;
-
-  line-height: 1.5;
-
-}
-
-#start {
-
-  border: 0;
-
-  border-radius: 30px;
-
-  padding:
-    14px 26px;
-
-  background: white;
-
-  color: black;
-
-  font-size: 15px;
-
-  font-weight: 500;
-
-}
-
-
-/* ==============================
-   HINT
-============================== */
-
-#hint {
-
-  position: fixed;
-
-  z-index: 5;
-
-  left: 50%;
-
-  bottom:
-    calc(
-      35px +
-      env(safe-area-inset-bottom)
-    );
-
-  transform:
-    translateX(-50%);
-
-  color:
-    rgba(255,255,255,.5);
-
-  font-family:
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
-
-  font-size: 13px;
-
-  opacity: 0;
-
-  transition:
-    opacity 1s ease;
-
-}
-
-#hint.show {
-  opacity: 1;
-}
-
+    * {
+        box-sizing: border-box;
+    }
+
+    html, body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #000;
+        touch-action: none;
+    }
+
+    body {
+        position: fixed;
+        inset: 0;
+    }
+
+    canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+    }
+
+    #permission {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        background: #000;
+        color: white;
+
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+
+        font-family: -apple-system, BlinkMacSystemFont,
+                     "SF Pro Display", sans-serif;
+
+        text-align: center;
+        padding: 30px;
+    }
+
+    #permission h1 {
+        font-size: 28px;
+        margin: 0 0 12px;
+        font-weight: 600;
+    }
+
+    #permission p {
+        font-size: 16px;
+        line-height: 1.5;
+        opacity: .65;
+        max-width: 300px;
+        margin: 0 0 28px;
+    }
+
+    #start {
+        border: 0;
+        border-radius: 999px;
+        padding: 14px 24px;
+        font-size: 17px;
+        font-weight: 600;
+        background: white;
+        color: black;
+    }
+
+    #status {
+        position: fixed;
+        bottom: 20px;
+        left: 0;
+        right: 0;
+
+        z-index: 5;
+
+        text-align: center;
+        color: white;
+        opacity: .35;
+
+        font-family: -apple-system, BlinkMacSystemFont,
+                     "SF Pro Display", sans-serif;
+
+        font-size: 12px;
+
+        pointer-events: none;
+    }
 </style>
-
 </head>
-
 
 <body>
 
+<div id="permission">
+    <h1>Duo Lock Screen</h1>
+    <p>
+        Tilt your iPhone to create the smooth
+        Duo-style screen deformation.
+    </p>
+
+    <button id="start">
+        Enable Motion
+    </button>
+</div>
 
 <canvas id="canvas"></canvas>
 
-
-<div id="intro">
-
-  <h1>
-    Spatial Wallpaper
-  </h1>
-
-  <p>
-    Tilt your phone left or right
-    to stretch the screen beyond
-    its edge.
-  </p>
-
-  <button id="start">
-    Begin Experience
-  </button>
-
-</div>
-
-
-<div id="hint">
-  Tilt left or right
-</div>
-
+<div id="status">0°</div>
 
 <script>
 
-
-/* ==========================================
-   CANVAS
-========================================== */
-
-const canvas =
-  document.getElementById(
-    "canvas"
-  );
-
-const gl =
-  canvas.getContext(
-    "webgl",
-    {
-      antialias: true,
-      premultipliedAlpha: false
-    }
-  );
-
+const canvas = document.getElementById("canvas");
+const gl = canvas.getContext("webgl", {
+    alpha: false,
+    antialias: false,
+    preserveDrawingBuffer: false
+});
 
 if (!gl) {
-
-  alert(
-    "WebGL is not supported."
-  );
-
+    alert("WebGL is not supported on this device.");
 }
 
 
-/* ==========================================
+/* =========================================================
    VERTEX SHADER
-========================================== */
+   ========================================================= */
 
 const vertexShaderSource = `
+attribute vec2 a_position;
 
-attribute vec2 position;
-
-varying vec2 uv;
+varying vec2 v_uv;
 
 void main() {
 
-  uv =
-    position * 0.5 + 0.5;
+    v_uv = a_position * 0.5 + 0.5;
 
-  gl_Position =
-    vec4(
-      position,
-      0.0,
-      1.0
-    );
-
+    gl_Position = vec4(a_position, 0.0, 1.0);
 }
-
 `;
 
 
-/* ==========================================
+/* =========================================================
    FRAGMENT SHADER
-========================================== */
+   ========================================================= */
 
 const fragmentShaderSource = `
 
 precision highp float;
 
-uniform sampler2D image;
+varying vec2 v_uv;
 
-uniform vec2 resolution;
+uniform sampler2D u_image;
 
-uniform float tilt;
-
-uniform float time;
-
-varying vec2 uv;
+uniform float u_tilt;
+uniform float u_aspect;
+uniform float u_imageAspect;
 
 
 /*
-===========================================
-SMOOTH EDGE FUNCTION
-===========================================
+    Virtual camera distance.
+
+    Larger = weaker deformation.
+    Smaller = stronger deformation.
 */
+uniform float u_eyeDistance;
 
-float edgeAmount(
-  float x,
-  float direction
-) {
 
-  /*
-    direction:
+/*
+    Maximum blur.
+*/
+uniform float u_maxBlur;
 
-    +1 = left side
 
-    -1 = right side
-  */
+/*
+    Amount of darkening around the fold.
+*/
+uniform float u_maxDarken;
 
-  float edge;
 
-  if (direction > 0.0) {
+/* ---------------------------------------------------------
+   Cover mapping
+   --------------------------------------------------------- */
 
-    edge =
-      1.0 - x;
+vec2 coverUV(vec2 uv) {
 
-  } else {
+    float screenAspect = u_aspect;
+    float imageAspect = u_imageAspect;
 
-    edge =
-      x;
+    vec2 scale = vec2(1.0);
 
-  }
+    if (screenAspect > imageAspect) {
 
-  /*
-    Only affect outer ~45%.
-  */
+        scale.y = imageAspect / screenAspect;
 
-  return smoothstep(
-    0.0,
-    0.48,
-    edge
-  );
+    } else {
 
+        scale.x = screenAspect / imageAspect;
+    }
+
+    vec2 result = (uv - 0.5) * scale + 0.5;
+
+    return result;
 }
 
 
-/*
-===========================================
-MAIN
-===========================================
-*/
+/* ---------------------------------------------------------
+   Image sampling
+   --------------------------------------------------------- */
+
+vec4 sampleImage(vec2 uv) {
+
+    vec2 imageUV = coverUV(uv);
+
+    /*
+       Outside image = black.
+    */
+    if (
+        imageUV.x < 0.0 ||
+        imageUV.x > 1.0 ||
+        imageUV.y < 0.0 ||
+        imageUV.y > 1.0
+    ) {
+        return vec4(0.0);
+    }
+
+    return texture2D(u_image, imageUV);
+}
+
+
+/* ---------------------------------------------------------
+   Soft disk blur
+
+   This is intentionally applied to the warped
+   image coordinate, NOT as a rectangular overlay.
+   --------------------------------------------------------- */
+
+vec4 blurredSample(vec2 uv, float radius) {
+
+    if (radius <= 0.001) {
+        return sampleImage(uv);
+    }
+
+    vec4 color = vec4(0.0);
+
+    float r = radius;
+
+    color += sampleImage(uv + vec2(-r, 0.0)) * 0.10;
+    color += sampleImage(uv + vec2( r, 0.0)) * 0.10;
+
+    color += sampleImage(uv + vec2(0.0, -r)) * 0.10;
+    color += sampleImage(uv + vec2(0.0,  r)) * 0.10;
+
+    color += sampleImage(uv + vec2(-r, -r)) * 0.08;
+    color += sampleImage(uv + vec2( r, -r)) * 0.08;
+    color += sampleImage(uv + vec2(-r,  r)) * 0.08;
+    color += sampleImage(uv + vec2( r,  r)) * 0.08;
+
+    color += sampleImage(uv + vec2(-r * 0.5, 0.0)) * 0.07;
+    color += sampleImage(uv + vec2( r * 0.5, 0.0)) * 0.07;
+
+    color += sampleImage(uv + vec2(0.0, -r * 0.5)) * 0.07;
+    color += sampleImage(uv + vec2(0.0,  r * 0.5)) * 0.07;
+
+    return color;
+}
+
+
+/* ---------------------------------------------------------
+   MAIN
+   --------------------------------------------------------- */
 
 void main() {
 
+    vec2 uv = v_uv;
 
-  vec2 p =
-    uv;
+    /*
+       Convert screen to physical-ish coordinates.
 
+       x is centered around 0.
+       y is centered around 0.
+    */
 
-  /*
-    Amount of deformation.
+    float x = (uv.x - 0.5) * u_aspect;
+    float y = uv.y - 0.5;
 
-    The further you tilt,
-    the stronger it becomes.
-  */
 
-  float strength =
-    abs(tilt);
+    /*
+       Tilt comes from iPhone gyroscope.
 
+       Positive tilt:
+           left side becomes the folded side.
 
-  /*
-    Which side?
+       Negative tilt:
+           right side becomes the folded side.
+    */
 
-    + = left
+    float angle = radians(u_tilt);
 
-    - = right
-  */
+    float absAngle = abs(angle);
 
-  float direction =
-    tilt >= 0.0
-      ? 1.0
-      : -1.0;
+    /*
+       Don't allow extreme angles.
+    */
+    absAngle = min(absAngle, radians(55.0));
 
 
-  /*
-    Distance from affected edge.
-  */
+    /*
+       Which edge becomes the hinge?
+    */
 
-  float edge =
-    direction > 0.0
-      ? 1.0 - p.x
-      : p.x;
+    float hinge;
 
+    if (angle >= 0.0) {
+        hinge = -u_aspect * 0.5;
+    } else {
+        hinge = u_aspect * 0.5;
+    }
 
-  /*
-    Smooth deformation zone.
 
-    IMPORTANT:
+    /*
+       Direction from hinge toward the center.
+    */
 
-    There is no rectangular
-    cutoff anymore.
-  */
+    float direction;
 
-  float influence =
-    smoothstep(
-      0.62,
-      0.0,
-      edge
-    );
+    if (angle >= 0.0) {
+        direction = 1.0;
+    } else {
+        direction = -1.0;
+    }
 
 
-  /*
-    Stronger toward the edge.
-  */
+    /*
+       Distance along the virtual glass.
+    */
 
-  float deformation =
-    influence *
-    influence *
-    strength;
+    float distanceFromHinge =
+        (x - hinge) * direction;
 
 
-  /*
-    Stretch image outward.
+    /*
+       If something is wrong with the coordinate,
+       keep it stable.
+    */
 
-    This is the key difference
-    from the previous version.
-  */
+    distanceFromHinge =
+        max(distanceFromHinge, 0.0);
 
-  float stretch =
-    deformation * 0.28;
 
+    /*
+       -----------------------------------------------------
+       ROTATED GLASS
+       -----------------------------------------------------
 
-  if (direction > 0.0) {
+       This is the important part.
 
-    p.x =
-      p.x -
-      stretch;
+       Instead of putting a blur rectangle over the image,
+       we actually calculate where the tilted glass exists
+       in 3D space.
+    */
 
-  } else {
+    float glassX =
+        hinge +
+        direction *
+        cos(absAngle) *
+        distanceFromHinge;
 
-    p.x =
-      p.x +
-      stretch;
+    float glassZ =
+        sin(absAngle) *
+        distanceFromHinge;
 
-  }
 
+    /*
+       Virtual eye / camera.
 
-  /*
-    Slight vertical breathing
-    makes the edge feel organic.
-  */
+       The viewer is looking toward the phone.
+    */
 
-  p.y +=
-    sin(
-      p.x * 8.0 +
-      time * 0.8
-    )
-    *
-    deformation
-    *
-    0.008;
-
-
-  /*
-    Clamp coordinates so the
-    image remains visible.
-  */
-
-  p =
-    clamp(
-      p,
-      0.001,
-      0.999
-    );
-
-
-  /*
-  =========================================
-  SOFT BLUR
-
-  Instead of placing a blur rectangle
-  over the image, sample the SAME image
-  several times.
-
-  Blur increases toward the edge.
-  =========================================
-  */
-
-  float blurAmount =
-    deformation *
-    0.025;
-
-
-  vec2 texel =
-    1.0 / resolution;
-
-
-  vec4 color =
-    texture2D(
-      image,
-      p
-    );
-
-
-  /*
-    8 surrounding samples
-  */
-
-  color +=
-    texture2D(
-      image,
-      p + vec2(
-        blurAmount,
-        0.0
-      )
-    );
-
-  color +=
-    texture2D(
-      image,
-      p - vec2(
-        blurAmount,
-        0.0
-      )
-    );
-
-  color +=
-    texture2D(
-      image,
-      p + vec2(
-        0.0,
-        blurAmount
-      )
-    );
-
-  color +=
-    texture2D(
-      image,
-      p - vec2(
-        0.0,
-        blurAmount
-      )
-    );
-
-  color +=
-    texture2D(
-      image,
-      p + vec2(
-        blurAmount * 0.7,
-        blurAmount * 0.7
-      )
-    );
-
-  color +=
-    texture2D(
-      image,
-      p + vec2(
-        -blurAmount * 0.7,
-        blurAmount * 0.7
-      )
-    );
-
-  color +=
-    texture2D(
-      image,
-      p + vec2(
-        blurAmount * 0.7,
-        -blurAmount * 0.7
-      )
-    );
-
-  color +=
-    texture2D(
-      image,
-      p + vec2(
-        -blurAmount * 0.7,
-        -blurAmount * 0.7
-      )
-    );
-
-
-  color /=
-    9.0;
-
-
-  /*
-  =========================================
-  SOFT EDGE LIGHT
-  =========================================
-  */
-
-  float edgeLight =
-    deformation *
-    0.12;
-
-
-  color.rgb +=
-    vec3(
-      edgeLight
-    );
-
-
-  gl_FragColor =
-    color;
+    vec3 eye =
+        vec3(0.0, 0.0, u_eyeDistance);
 
+
+    /*
+       Point on rotated glass.
+    */
+
+    vec3 glassPoint =
+        vec3(glassX, y, glassZ);
+
+
+    /*
+       Ray from eye → glass.
+    */
+
+    vec3 ray =
+        glassPoint - eye;
+
+
+    /*
+       Intersection with original screen plane.
+
+       Original screen plane is z = 0.
+    */
+
+    float denominator = ray.z;
+
+    float t = 0.0;
+
+    if (abs(denominator) > 0.00001) {
+
+        t = -eye.z / denominator;
+
+    } else {
+
+        t = 1.0;
+    }
+
+
+    /*
+       Where does this ray hit the original image?
+    */
+
+    vec3 hit =
+        eye + ray * t;
+
+
+    /*
+       Convert back into UV coordinates.
+    */
+
+    float sourceX =
+        hit.x / u_aspect + 0.5;
+
+    float sourceY =
+        hit.y + 0.5;
+
+
+    vec2 sourceUV =
+        vec2(sourceX, sourceY);
+
+
+    /*
+       -----------------------------------------------------
+       GAP
+       -----------------------------------------------------
+
+       The farther the virtual glass is from the original
+       screen plane, the more blur/darkening we introduce.
+    */
+
+    float gap =
+        abs(glassZ);
+
+
+    /*
+       Normalize the gap.
+    */
+
+    float gapFactor =
+        smoothstep(
+            0.0,
+            u_aspect * 0.45,
+            gap
+        );
+
+
+    /*
+       Blur increases smoothly with the physical gap.
+    */
+
+    float blurAmount =
+        gapFactor * u_maxBlur;
+
+
+    /*
+       Convert blur from pixels-ish into UV units.
+    */
+
+    float blurUV =
+        blurAmount / 900.0;
+
+
+    /*
+       Sample the warped image.
+    */
+
+    vec4 color =
+        blurredSample(
+            sourceUV,
+            blurUV
+        );
+
+
+    /*
+       -----------------------------------------------------
+       DARKENING
+       -----------------------------------------------------
+    */
+
+    float darken =
+        gapFactor * u_maxDarken;
+
+    color.rgb *=
+        1.0 - darken;
+
+
+    /*
+       -----------------------------------------------------
+       MISS AREA
+       -----------------------------------------------------
+
+       If the ray does not intersect the original screen,
+       fade toward black.
+
+       This gives the deep folded edge.
+    */
+
+    float valid =
+        step(0.0, t) *
+        step(t, 1.0) *
+        step(-u_aspect * 0.5, hit.x) *
+        step(hit.x, u_aspect * 0.5) *
+        step(-0.5, hit.y) *
+        step(hit.y, 0.5);
+
+
+    /*
+       Smooth edge rather than a hard rectangle.
+    */
+
+    float edgeFade =
+        smoothstep(
+            -0.08,
+            0.05,
+            valid
+        );
+
+
+    color.rgb *= edgeFade;
+
+
+    /*
+       At zero tilt we want the original image to be
+       completely untouched.
+    */
+
+    float tiltAmount =
+        smoothstep(
+            radians(0.5),
+            radians(4.0),
+            absAngle
+        );
+
+
+    vec4 original =
+        sampleImage(uv);
+
+
+    color =
+        mix(
+            original,
+            color,
+            tiltAmount
+        );
+
+
+    gl_FragColor =
+        vec4(color.rgb, 1.0);
 }
-
 `;
 
 
-/* ==========================================
-   SHADER CREATION
-========================================== */
+/* =========================================================
+   SHADER HELPERS
+   ========================================================= */
 
-function createShader(
-  type,
-  source
-) {
+function createShader(type, source) {
 
-  const shader =
-    gl.createShader(type);
+    const shader = gl.createShader(type);
 
-  gl.shaderSource(
-    shader,
-    source
-  );
+    gl.shaderSource(shader, source);
 
-  gl.compileShader(shader);
+    gl.compileShader(shader);
 
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
 
-  if (
-    !gl.getShaderParameter(
-      shader,
-      gl.COMPILE_STATUS
-    )
-  ) {
+        console.error(
+            gl.getShaderInfoLog(shader)
+        );
 
-    console.error(
-      gl.getShaderInfoLog(shader)
-    );
+        throw new Error(
+            gl.getShaderInfoLog(shader)
+        );
+    }
 
-  }
-
-
-  return shader;
-
+    return shader;
 }
 
 
-const vertexShader =
-  createShader(
-    gl.VERTEX_SHADER,
-    vertexShaderSource
-  );
+function createProgram(vertexSource, fragmentSource) {
 
+    const vertexShader =
+        createShader(
+            gl.VERTEX_SHADER,
+            vertexSource
+        );
 
-const fragmentShader =
-  createShader(
-    gl.FRAGMENT_SHADER,
-    fragmentShaderSource
-  );
+    const fragmentShader =
+        createShader(
+            gl.FRAGMENT_SHADER,
+            fragmentSource
+        );
 
+    const program =
+        gl.createProgram();
 
-/* ==========================================
-   PROGRAM
-========================================== */
+    gl.attachShader(
+        program,
+        vertexShader
+    );
+
+    gl.attachShader(
+        program,
+        fragmentShader
+    );
+
+    gl.linkProgram(program);
+
+    if (!gl.getProgramParameter(
+        program,
+        gl.LINK_STATUS
+    )) {
+
+        console.error(
+            gl.getProgramInfoLog(program)
+        );
+
+        throw new Error(
+            gl.getProgramInfoLog(program)
+        );
+    }
+
+    return program;
+}
+
 
 const program =
-  gl.createProgram();
+    createProgram(
+        vertexShaderSource,
+        fragmentShaderSource
+    );
 
-gl.attachShader(
-  program,
-  vertexShader
-);
-
-gl.attachShader(
-  program,
-  fragmentShader
-);
-
-gl.linkProgram(
-  program
-);
-
-gl.useProgram(
-  program
-);
+gl.useProgram(program);
 
 
-/* ==========================================
+/* =========================================================
    FULL SCREEN TRIANGLE
-========================================== */
+   ========================================================= */
 
 const buffer =
-  gl.createBuffer();
+    gl.createBuffer();
 
 gl.bindBuffer(
-  gl.ARRAY_BUFFER,
-  buffer
+    gl.ARRAY_BUFFER,
+    buffer
 );
 
 gl.bufferData(
-  gl.ARRAY_BUFFER,
-
-  new Float32Array([
-    -1, -1,
-     3, -1,
-    -1,  3
-  ]),
-
-  gl.STATIC_DRAW
+    gl.ARRAY_BUFFER,
+    new Float32Array([
+        -1, -1,
+         3, -1,
+        -1,  3
+    ]),
+    gl.STATIC_DRAW
 );
 
 
-const position =
-  gl.getAttribLocation(
-    program,
-    "position"
-  );
+const positionLocation =
+    gl.getAttribLocation(
+        program,
+        "a_position"
+    );
 
 gl.enableVertexAttribArray(
-  position
+    positionLocation
 );
 
 gl.vertexAttribPointer(
-  position,
-  2,
-  gl.FLOAT,
-  false,
-  0,
-  0
+    positionLocation,
+    2,
+    gl.FLOAT,
+    false,
+    0,
+    0
 );
 
 
-/* ==========================================
+/* =========================================================
    UNIFORMS
-========================================== */
+   ========================================================= */
 
-const imageUniform =
-  gl.getUniformLocation(
-    program,
-    "image"
-  );
+const uImage =
+    gl.getUniformLocation(
+        program,
+        "u_image"
+    );
 
-const resolutionUniform =
-  gl.getUniformLocation(
-    program,
-    "resolution"
-  );
+const uTilt =
+    gl.getUniformLocation(
+        program,
+        "u_tilt"
+    );
 
-const tiltUniform =
-  gl.getUniformLocation(
-    program,
-    "tilt"
-  );
+const uAspect =
+    gl.getUniformLocation(
+        program,
+        "u_aspect"
+    );
 
-const timeUniform =
-  gl.getUniformLocation(
-    program,
-    "time"
-  );
+const uImageAspect =
+    gl.getUniformLocation(
+        program,
+        "u_imageAspect"
+    );
+
+const uEyeDistance =
+    gl.getUniformLocation(
+        program,
+        "u_eyeDistance"
+    );
+
+const uMaxBlur =
+    gl.getUniformLocation(
+        program,
+        "u_maxBlur"
+    );
+
+const uMaxDarken =
+    gl.getUniformLocation(
+        program,
+        "u_maxDarken"
+    );
 
 
-/* ==========================================
-   LOAD IMAGE
-========================================== */
-
-const texture =
-  gl.createTexture();
+/* =========================================================
+   IMAGE
+   ========================================================= */
 
 const image =
-  new Image();
+    new Image();
 
-image.crossOrigin =
-  "anonymous";
+image.src = "lockscreen.png";
 
 
-image.onload =
-  function() {
+const texture =
+    gl.createTexture();
 
+image.onload = () => {
 
     gl.bindTexture(
-      gl.TEXTURE_2D,
-      texture
+        gl.TEXTURE_2D,
+        texture
     );
 
+    gl.pixelStorei(
+        gl.UNPACK_FLIP_Y_WEBGL,
+        true
+    );
 
     gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      image
-    );
-
-
-    gl.texParameteri(
-      gl.TEXTURE_2D,
-      gl.TEXTURE_MIN_FILTER,
-      gl.LINEAR
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        image
     );
 
     gl.texParameteri(
-      gl.TEXTURE_2D,
-      gl.TEXTURE_MAG_FILTER,
-      gl.LINEAR
-    );
-
-
-    gl.texParameteri(
-      gl.TEXTURE_2D,
-      gl.TEXTURE_WRAP_S,
-      gl.CLAMP_TO_EDGE
+        gl.TEXTURE_2D,
+        gl.TEXTURE_MIN_FILTER,
+        gl.LINEAR
     );
 
     gl.texParameteri(
-      gl.TEXTURE_2D,
-      gl.TEXTURE_WRAP_T,
-      gl.CLAMP_TO_EDGE
+        gl.TEXTURE_2D,
+        gl.TEXTURE_MAG_FILTER,
+        gl.LINEAR
     );
 
+    gl.texParameteri(
+        gl.TEXTURE_2D,
+        gl.TEXTURE_WRAP_S,
+        gl.CLAMP_TO_EDGE
+    );
+
+    gl.texParameteri(
+        gl.TEXTURE_2D,
+        gl.TEXTURE_WRAP_T,
+        gl.CLAMP_TO_EDGE
+    );
 
     gl.activeTexture(
-      gl.TEXTURE0
+        gl.TEXTURE0
     );
 
     gl.bindTexture(
-      gl.TEXTURE_2D,
-      texture
+        gl.TEXTURE_2D,
+        texture
     );
 
     gl.uniform1i(
-      imageUniform,
-      0
+        uImage,
+        0
     );
 
+    gl.uniform1f(
+        uImageAspect,
+        image.width / image.height
+    );
 
     resize();
 
-    render();
-
-  };
-
-
-image.src =
-  "lockscreen.png";
+    requestAnimationFrame(render);
+};
 
 
-/* ==========================================
+/* =========================================================
+   MOTION
+   ========================================================= */
+
+let currentTilt = 0;
+let targetTilt = 0;
+
+let motionStarted = false;
+
+
+/*
+   iPhone tilt.
+
+   gamma:
+       left/right tilt
+
+   Positive gamma = phone tilted right.
+*/
+
+function handleOrientation(event) {
+
+    if (event.gamma == null) {
+        return;
+    }
+
+    targetTilt =
+        Math.max(
+            -55,
+            Math.min(
+                55,
+                event.gamma
+            )
+        );
+}
+
+
+/* =========================================================
+   DESKTOP TESTING
+   ========================================================= */
+
+let pointerActive = false;
+
+window.addEventListener(
+    "pointerdown",
+    () => {
+        pointerActive = true;
+    }
+);
+
+window.addEventListener(
+    "pointerup",
+    () => {
+        pointerActive = false;
+    }
+);
+
+window.addEventListener(
+    "pointermove",
+    event => {
+
+        if (!pointerActive) {
+            return;
+        }
+
+        const x =
+            event.clientX /
+            window.innerWidth;
+
+        targetTilt =
+            (x - 0.5) * 110;
+    }
+);
+
+
+/* =========================================================
+   MOTION PERMISSION
+   ========================================================= */
+
+const permission =
+    document.getElementById(
+        "permission"
+    );
+
+const startButton =
+    document.getElementById(
+        "start"
+    );
+
+startButton.addEventListener(
+    "click",
+    async () => {
+
+        try {
+
+            if (
+                typeof DeviceOrientationEvent !==
+                "undefined" &&
+                typeof DeviceOrientationEvent.requestPermission ===
+                "function"
+            ) {
+
+                const result =
+                    await DeviceOrientationEvent
+                        .requestPermission();
+
+                if (result !== "granted") {
+
+                    alert(
+                        "Motion permission was not granted."
+                    );
+
+                    return;
+                }
+            }
+
+            window.addEventListener(
+                "deviceorientation",
+                handleOrientation,
+                true
+            );
+
+            motionStarted = true;
+
+            permission.style.display =
+                "none";
+
+        } catch (error) {
+
+            console.error(error);
+
+            alert(
+                "Could not enable motion."
+            );
+        }
+    }
+);
+
+
+/* =========================================================
    RESIZE
-========================================== */
+   ========================================================= */
 
 function resize() {
 
-  const dpr =
-    Math.min(
-      window.devicePixelRatio || 1,
-      2
+    const dpr =
+        Math.min(
+            window.devicePixelRatio || 1,
+            2
+        );
+
+    canvas.width =
+        window.innerWidth * dpr;
+
+    canvas.height =
+        window.innerHeight * dpr;
+
+    gl.viewport(
+        0,
+        0,
+        canvas.width,
+        canvas.height
     );
 
+    const aspect =
+        window.innerWidth /
+        window.innerHeight;
 
-  canvas.width =
-    window.innerWidth *
-    dpr;
-
-  canvas.height =
-    window.innerHeight *
-    dpr;
-
-
-  canvas.style.width =
-    window.innerWidth + "px";
-
-  canvas.style.height =
-    window.innerHeight + "px";
-
-
-  gl.viewport(
-    0,
-    0,
-    canvas.width,
-    canvas.height
-  );
-
+    gl.uniform1f(
+        uAspect,
+        aspect
+    );
 }
-
 
 window.addEventListener(
-  "resize",
-  resize
+    "resize",
+    resize
 );
 
 
-/* ==========================================
-   MOTION
-========================================== */
+/* =========================================================
+   RENDER LOOP
+   ========================================================= */
 
-let targetTilt = 0;
+function render() {
 
-let currentTilt = 0;
+    /*
+       Smooth physical movement.
+
+       This is important.
+       We don't directly use the sensor value.
+    */
+
+    currentTilt +=
+        (targetTilt - currentTilt)
+        * 0.10;
 
 
-function handleMotion(
-  event
-) {
+    /*
+       Update shader.
+    */
 
-  const gamma =
-    event.gamma || 0;
-
-
-  /*
-    -30° → -1
-
-     0° →  0
-
-    +30° → +1
-  */
-
-  targetTilt =
-    Math.max(
-      -1,
-      Math.min(
-        1,
-        gamma / 30
-      )
+    gl.uniform1f(
+        uTilt,
+        currentTilt
     );
 
-}
+
+    /*
+       Android reference uses roughly 320mm
+       viewing distance.
+
+       In our normalized WebGL model,
+       2.8 gives a similar visual behavior.
+    */
+
+    gl.uniform1f(
+        uEyeDistance,
+        2.8
+    );
 
 
-/* ==========================================
-   START
-========================================== */
+    /*
+       Blur tuning.
+    */
 
-const start =
-  document.getElementById(
-    "start"
-  );
-
-const intro =
-  document.getElementById(
-    "intro"
-  );
-
-const hint =
-  document.getElementById(
-    "hint"
-  );
+    gl.uniform1f(
+        uMaxBlur,
+        24.0
+    );
 
 
-start.addEventListener(
-  "click",
-  async () => {
+    /*
+       Fold darkening.
+    */
 
-    try {
-
-      if (
-        typeof DeviceOrientationEvent !==
-        "undefined" &&
-
-        typeof DeviceOrientationEvent
-          .requestPermission ===
-          "function"
-      ) {
-
-        const permission =
-          await DeviceOrientationEvent
-            .requestPermission();
+    gl.uniform1f(
+        uMaxDarken,
+        0.48
+    );
 
 
-        if (
-          permission !==
-          "granted"
-        ) {
-
-          start.textContent =
-            "Motion Permission Denied";
-
-          return;
-
-        }
-
-      }
+    gl.drawArrays(
+        gl.TRIANGLES,
+        0,
+        3
+    );
 
 
-      window.addEventListener(
-        "deviceorientation",
-        handleMotion
-      );
+    document.getElementById(
+        "status"
+    ).textContent =
+        Math.round(currentTilt) + "°";
 
 
-      intro.classList.add(
-        "hidden"
-      );
-
-
-      setTimeout(
-        () => {
-
-          hint.classList.add(
-            "show"
-          );
-
-        },
-        500
-      );
-
-
-      setTimeout(
-        () => {
-
-          hint.classList.remove(
-            "show"
-          );
-
-        },
-        4000
-      );
-
-
-      render();
-
-    }
-    catch(error) {
-
-      console.error(error);
-
-    }
-
-  }
-);
-
-
-/* ==========================================
-   RENDER
-========================================== */
-
-function render(
-  milliseconds = 0
-) {
-
-  currentTilt +=
-    (
-      targetTilt -
-      currentTilt
-    ) * 0.075;
-
-
-  gl.clearColor(
-    0,
-    0,
-    0,
-    1
-  );
-
-
-  gl.clear(
-    gl.COLOR_BUFFER_BIT
-  );
-
-
-  gl.uniform2f(
-    resolutionUniform,
-    canvas.width,
-    canvas.height
-  );
-
-
-  gl.uniform1f(
-    tiltUniform,
-    currentTilt
-  );
-
-
-  gl.uniform1f(
-    timeUniform,
-    milliseconds *
-    0.001
-  );
-
-
-  gl.drawArrays(
-    gl.TRIANGLES,
-    0,
-    3
-  );
-
-
-  requestAnimationFrame(
-    render
-  );
-
+    requestAnimationFrame(
+        render
+    );
 }
 
 </script>
