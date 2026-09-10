@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fluid Tilt</title>
+  <title>Fluid Motion</title>
 
   <style>
     html,
@@ -14,40 +14,62 @@
       background: #000;
     }
 
-    #orb {
+    #scene {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    .blob {
       position: absolute;
-
-      width: 240px;
-      height: 240px;
-
       left: 50%;
       top: 50%;
+
+      width: 230px;
+      height: 230px;
+
+      margin-left: -115px;
+      margin-top: -115px;
 
       border-radius: 50%;
 
       background:
         radial-gradient(
-          circle at 35% 30%,
+          circle at 35% 28%,
           #ffffff 0%,
           #d9faff 7%,
-          #8ee7ff 18%,
+          #72dfff 18%,
           #168cff 42%,
-          #0047ff 63%,
+          #0047ff 65%,
           rgba(0, 71, 255, 0) 80%
         );
 
-      filter: blur(16px);
+      filter: blur(17px);
 
-      transform:
-        translate(-50%, -50%)
-        scale(1);
+      will-change: transform;
+    }
 
-      will-change: transform, border-radius;
+    .blob:nth-child(2) {
+      width: 210px;
+      height: 210px;
+      margin-left: -105px;
+      margin-top: -105px;
+      opacity: 0.65;
+      filter: blur(22px);
+    }
+
+    .blob:nth-child(3) {
+      width: 180px;
+      height: 180px;
+      margin-left: -90px;
+      margin-top: -90px;
+      opacity: 0.4;
+      filter: blur(28px);
     }
 
     #motionButton {
       position: fixed;
-      z-index: 10;
+      z-index: 20;
 
       top: 30px;
       left: 50%;
@@ -56,7 +78,7 @@
 
       padding: 12px 20px;
 
-      border: none;
+      border: 0;
       border-radius: 30px;
 
       background: white;
@@ -69,77 +91,95 @@
 
 <body>
 
-  <button id="motionButton">Enable Motion</button>
+  <div id="scene">
 
-  <div id="orb"></div>
+    <div class="blob"></div>
+    <div class="blob"></div>
+    <div class="blob"></div>
+
+  </div>
+
+  <button id="motionButton">
+    Enable Motion
+  </button>
 
 
   <script>
 
-    const orb = document.getElementById("orb");
-    const button = document.getElementById("motionButton");
+    const blobs =
+      document.querySelectorAll(".blob");
+
+    const button =
+      document.getElementById("motionButton");
+
+
+    /*
+      Each blob has its own
+      delayed position.
+    */
+
+    const positions = [
+      { x: 0, y: 0 },
+      { x: 0, y: 0 },
+      { x: 0, y: 0 }
+    ];
 
 
     let targetX = 0;
-    let currentX = 0;
-
     let targetY = 0;
-    let currentY = 0;
 
-    let targetStretch = 1;
-    let currentStretch = 1;
-
-    let targetSquash = 1;
-    let currentSquash = 1;
-
-    let targetRotate = 0;
-    let currentRotate = 0;
-
-    let targetSkew = 0;
-    let currentSkew = 0;
+    let velocityX = 0;
+    let velocityY = 0;
 
 
-    button.addEventListener("click", async () => {
+    button.addEventListener(
+      "click",
+      async () => {
 
-      if (
-        typeof DeviceOrientationEvent !== "undefined" &&
-        typeof DeviceOrientationEvent.requestPermission === "function"
-      ) {
+        if (
+          typeof DeviceOrientationEvent !== "undefined" &&
+          typeof DeviceOrientationEvent.requestPermission === "function"
+        ) {
 
-        try {
+          try {
 
-          const permission =
-            await DeviceOrientationEvent.requestPermission();
+            const permission =
+              await DeviceOrientationEvent.requestPermission();
 
-          if (permission === "granted") {
+            if (permission === "granted") {
 
-            startMotion();
+              startMotion();
 
-            button.textContent = "Motion Enabled";
+              button.textContent =
+                "Motion Enabled";
 
-          } else {
+            } else {
 
-            button.textContent = "Permission Denied";
+              button.textContent =
+                "Permission Denied";
+
+            }
+
+          } catch (error) {
+
+            console.error(error);
+
+            button.textContent =
+              "Motion Error";
 
           }
 
-        } catch (error) {
+        } else {
 
-          console.error(error);
+          startMotion();
 
-          button.textContent = "Motion Error";
+          button.textContent =
+            "Motion Enabled";
 
         }
 
-      } else {
-
-        startMotion();
-
-        button.textContent = "Motion Enabled";
-
       }
-
-    });
+    );
 
 
     function startMotion() {
@@ -148,11 +188,16 @@
         "deviceorientation",
         (event) => {
 
-          /*
-            LEFT / RIGHT
-          */
+          const gamma =
+            event.gamma || 0;
 
-          const gamma = event.gamma || 0;
+          const beta =
+            event.beta || 0;
+
+
+          /*
+            Horizontal movement
+          */
 
           const horizontal =
             Math.max(
@@ -162,10 +207,8 @@
 
 
           /*
-            FORWARD / BACKWARD
+            Vertical movement
           */
-
-          const beta = event.beta || 0;
 
           const vertical =
             Math.max(
@@ -174,57 +217,11 @@
             );
 
 
-          /*
-            Position
-          */
+          targetX =
+            horizontal * 260;
 
-          targetX = horizontal * 230;
-
-          targetY = vertical * 80;
-
-
-          /*
-            Fluid intensity
-          */
-
-          const intensity =
-            Math.max(
-              Math.abs(horizontal),
-              Math.abs(vertical)
-            );
-
-
-          /*
-            Stretch toward movement
-          */
-
-          targetStretch =
-            1 + intensity * 0.65;
-
-
-          /*
-            Compress perpendicular axis
-          */
-
-          targetSquash =
-            1 - intensity * 0.25;
-
-
-          /*
-            Small rotation
-          */
-
-          targetRotate =
-            horizontal * 14;
-
-
-          /*
-            Slight skew creates
-            a more organic pull
-          */
-
-          targetSkew =
-            horizontal * 8;
+          targetY =
+            vertical * 100;
 
         }
       );
@@ -238,62 +235,105 @@
     function animate() {
 
       /*
-        Smooth elastic interpolation
+        Main blob
       */
 
-      currentX +=
-        (targetX - currentX) * 0.07;
+      positions[0].x +=
+        (targetX - positions[0].x) * 0.12;
 
-      currentY +=
-        (targetY - currentY) * 0.07;
-
-      currentStretch +=
-        (targetStretch - currentStretch) * 0.07;
-
-      currentSquash +=
-        (targetSquash - currentSquash) * 0.07;
-
-      currentRotate +=
-        (targetRotate - currentRotate) * 0.07;
-
-      currentSkew +=
-        (targetSkew - currentSkew) * 0.07;
+      positions[0].y +=
+        (targetY - positions[0].y) * 0.12;
 
 
       /*
-        Organic blob shape
+        Second blob follows slower
       */
 
-      const leftRight =
-        50 - currentSkew;
+      positions[1].x +=
+        (positions[0].x - positions[1].x) * 0.08;
 
-      const rightLeft =
-        50 + currentSkew;
+      positions[1].y +=
+        (positions[0].y - positions[1].y) * 0.08;
 
 
-      orb.style.borderRadius = `
-        ${leftRight}% ${rightLeft}%
-        ${rightLeft}% ${leftRight}%
-        /
-        ${50 - currentSkew / 2}%
-        ${50 + currentSkew / 2}%
-        ${50 + currentSkew / 2}%
-        ${50 - currentSkew / 2}%
+      /*
+        Third blob follows even slower
+      */
+
+      positions[2].x +=
+        (positions[1].x - positions[2].x) * 0.05;
+
+      positions[2].y +=
+        (positions[1].y - positions[2].y) * 0.05;
+
+
+      /*
+        Calculate velocity.
+
+        This gives us the feeling
+        of liquid being pulled.
+      */
+
+      velocityX =
+        positions[0].x - positions[1].x;
+
+      velocityY =
+        positions[0].y - positions[1].y;
+
+
+      const stretch =
+        Math.min(
+          1.45,
+          1 + Math.abs(velocityX) * 0.004
+        );
+
+
+      const squash =
+        Math.max(
+          0.72,
+          1 - Math.abs(velocityX) * 0.0015
+        );
+
+
+      /*
+        Main blob
+      */
+
+      blobs[0].style.transform = `
+        translate(
+          ${positions[0].x}px,
+          ${positions[0].y}px
+        )
+        scaleX(${stretch})
+        scaleY(${squash})
       `;
 
 
       /*
-        Apply movement + deformation
+        Middle liquid
       */
 
-      orb.style.transform = `
+      blobs[1].style.transform = `
         translate(
-          calc(-50% + ${currentX}px),
-          calc(-50% + ${currentY}px)
+          ${positions[1].x}px,
+          ${positions[1].y}px
         )
-        scaleX(${currentStretch})
-        scaleY(${currentSquash})
-        rotate(${currentRotate}deg)
+        scaleX(${1 + stretch * 0.15})
+        scaleY(${1 - (stretch - 1) * 0.2})
+      `;
+
+
+      /*
+        Outer liquid trail
+      */
+
+      blobs[2].style.transform = `
+        translate(
+          ${positions[2].x}px,
+          ${positions[2].y}px
+        )
+        scaleX(${1 + stretch * 0.08})
+        scaleY(${1 - (stretch - 1) * 0.15})
       `;
 
 
