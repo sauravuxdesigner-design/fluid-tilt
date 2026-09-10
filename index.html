@@ -1,541 +1,950 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#000000">
 
-  <title>Fluid</title>
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
-  <style>
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
+<meta name="theme-color" content="#000000">
 
-    html,
-    body {
-      margin: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #000;
-    }
+<title>Spatial Lock Screen</title>
 
-    body {
-      position: fixed;
-      inset: 0;
-      touch-action: none;
-    }
+<style>
 
-    #scene {
-      position: fixed;
-      inset: 0;
-      overflow: hidden;
-      background:
-        radial-gradient(
-          circle at 50% 50%,
-          #020711 0%,
-          #000 70%
-        );
-    }
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
 
-    /* Large atmospheric glow */
+html,
+body {
+  margin: 0;
+  padding: 0;
 
-    #ambient {
-      position: absolute;
-      left: 50%;
-      top: 50%;
+  width: 100%;
+  height: 100%;
 
-      width: 70vmin;
-      height: 70vmin;
+  overflow: hidden;
 
-      transform: translate(-50%, -50%);
+  background: #000;
+}
 
-      border-radius: 50%;
+body {
+  position: fixed;
+  inset: 0;
 
-      background: rgba(0, 80, 255, 0.15);
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+}
 
-      filter: blur(100px);
 
-      pointer-events: none;
-    }
+/* =====================================
+   MAIN SCREEN
+===================================== */
 
-    /* The actual fluid */
+#screen {
 
-    #fluid {
-      position: absolute;
+  position: fixed;
 
-      left: 50%;
-      top: 50%;
+  inset: 0;
 
-      width: min(62vmin, 420px);
-      height: min(62vmin, 420px);
+  overflow: hidden;
 
-      transform: translate(-50%, -50%);
+  background: #111;
 
-      border-radius: 48% 52% 50% 50% / 52% 48% 52% 48%;
+}
 
-      background:
-        radial-gradient(
-          circle at 34% 27%,
-          #ffffff 0%,
-          #e5fbff 5%,
-          #a4efff 13%,
-          #4dd3ff 25%,
-          #168cff 44%,
-          #0047ff 62%,
-          #002baf 74%,
-          rgba(0, 35, 160, 0) 82%
-        );
 
-      filter: blur(8px);
+/* =====================================
+   WALLPAPER
+===================================== */
 
-      will-change: transform, border-radius;
+#wallpaper {
 
-      box-shadow:
-        0 0 80px rgba(0, 90, 255, 0.35);
-    }
+  position: absolute;
 
-    /* Soft liquid aura */
+  width: 115%;
+  height: 115%;
 
-    #aura {
-      position: absolute;
+  left: -7.5%;
+  top: -7.5%;
 
-      left: 50%;
-      top: 50%;
+  /*
+    Temporary wallpaper.
 
-      width: min(75vmin, 500px);
-      height: min(75vmin, 500px);
+    We'll replace this with your
+    actual wallpaper image later.
+  */
 
-      transform: translate(-50%, -50%);
+  background:
 
-      border-radius: 50%;
+    radial-gradient(
+      ellipse at 70% 75%,
+      #e8d6b5 0%,
+      #c9b58e 25%,
+      transparent 55%
+    ),
 
-      background:
-        radial-gradient(
-          circle,
-          rgba(0, 110, 255, 0.16),
-          transparent 68%
-        );
+    radial-gradient(
+      ellipse at 25% 35%,
+      #7d8791 0%,
+      #4f5964 35%,
+      transparent 65%
+    ),
 
-      filter: blur(45px);
+    linear-gradient(
+      150deg,
+      #596774 0%,
+      #92948e 35%,
+      #d7ccb5 65%,
+      #eee6d3 100%
+    );
 
-      pointer-events: none;
-    }
+  background-size: cover;
 
-    /* Intro */
+  transform:
+    translate3d(0,0,0)
+    scale(1.03);
 
-    #intro {
-      position: fixed;
-      inset: 0;
+  will-change: transform;
 
-      z-index: 20;
+  transition: none;
+}
 
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
 
-      padding: 30px;
+/* =====================================
+   LEFT BLUR
+===================================== */
 
-      background: rgba(0, 0, 0, 0.76);
+.blur-left {
 
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
+  position: absolute;
 
-      transition:
-        opacity 0.8s ease,
-        visibility 0.8s ease;
-    }
+  left: -5%;
+  top: -10%;
 
-    #intro.hidden {
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-    }
+  width: 38%;
+  height: 120%;
 
-    #title {
-      color: white;
+  background: inherit;
 
-      font-family:
-        -apple-system,
-        BlinkMacSystemFont,
-        "SF Pro Display",
-        sans-serif;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 
-      font-size: 30px;
-      font-weight: 500;
+  filter: blur(12px);
 
-      letter-spacing: -0.8px;
-    }
+  opacity: 0;
 
-    #description {
-      margin-top: 12px;
+  transform:
+    translateX(-30px)
+    scale(1.15);
 
-      max-width: 270px;
+  pointer-events: none;
 
-      color: rgba(255,255,255,0.5);
+  will-change:
+    opacity,
+    transform;
 
-      font-family:
-        -apple-system,
-        BlinkMacSystemFont,
-        sans-serif;
+}
 
-      font-size: 14px;
 
-      line-height: 1.5;
+/* =====================================
+   RIGHT BLUR
+===================================== */
 
-      text-align: center;
-    }
+.blur-right {
 
-    #motionButton {
-      margin-top: 24px;
+  position: absolute;
 
-      padding: 14px 25px;
+  right: -5%;
+  top: -10%;
 
-      border: 0;
-      border-radius: 30px;
+  width: 38%;
+  height: 120%;
 
-      background: white;
-      color: black;
+  background: inherit;
 
-      font-size: 15px;
-      font-weight: 500;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 
-      font-family:
-        -apple-system,
-        BlinkMacSystemFont,
-        sans-serif;
-    }
+  filter: blur(12px);
 
-    #hint {
-      position: fixed;
+  opacity: 0;
 
-      z-index: 10;
+  transform:
+    translateX(30px)
+    scale(1.15);
 
-      left: 50%;
-      bottom: calc(32px + env(safe-area-inset-bottom));
+  pointer-events: none;
 
-      transform: translateX(-50%);
+  will-change:
+    opacity,
+    transform;
 
-      color: rgba(255,255,255,0.35);
+}
 
-      font-family:
-        -apple-system,
-        BlinkMacSystemFont,
-        sans-serif;
 
-      font-size: 13px;
+/* =====================================
+   BLUR FADE MASKS
+===================================== */
 
-      white-space: nowrap;
+.blur-left {
 
-      opacity: 0;
+  -webkit-mask-image:
+    linear-gradient(
+      to right,
+      black 0%,
+      black 30%,
+      transparent 100%
+    );
 
-      transition: opacity 1s ease;
-    }
+  mask-image:
+    linear-gradient(
+      to right,
+      black 0%,
+      black 30%,
+      transparent 100%
+    );
+}
 
-    #hint.visible {
-      opacity: 1;
-    }
-  </style>
+
+.blur-right {
+
+  -webkit-mask-image:
+    linear-gradient(
+      to left,
+      black 0%,
+      black 30%,
+      transparent 100%
+    );
+
+  mask-image:
+    linear-gradient(
+      to left,
+      black 0%,
+      black 30%,
+      transparent 100%
+    );
+}
+
+
+/* =====================================
+   SUBTLE DARK EDGE
+===================================== */
+
+#edge {
+
+  position: absolute;
+
+  inset: 0;
+
+  pointer-events: none;
+
+  background:
+
+    linear-gradient(
+      90deg,
+      rgba(0,0,0,0.20),
+      transparent 15%,
+      transparent 85%,
+      rgba(0,0,0,0.20)
+    );
+
+}
+
+
+/* =====================================
+   CLOCK
+===================================== */
+
+#clock {
+
+  position: absolute;
+
+  top: 9vh;
+
+  left: 50%;
+
+  transform:
+    translateX(-50%);
+
+  color: white;
+
+  text-align: center;
+
+  z-index: 5;
+
+  white-space: nowrap;
+
+  text-shadow:
+    0 3px 20px rgba(0,0,0,0.18);
+
+}
+
+
+#time {
+
+  font-size:
+    clamp(
+      76px,
+      19vw,
+      155px
+    );
+
+  font-weight: 200;
+
+  letter-spacing: -6px;
+
+  line-height: 0.9;
+}
+
+
+#date {
+
+  margin-top: 14px;
+
+  font-size: 17px;
+
+  font-weight: 500;
+
+}
+
+
+/* =====================================
+   BOTTOM CONTROLS
+===================================== */
+
+#controls {
+
+  position: absolute;
+
+  z-index: 5;
+
+  bottom:
+    calc(
+      30px +
+      env(safe-area-inset-bottom)
+    );
+
+  left: 50%;
+
+  transform:
+    translateX(-50%);
+
+  display: flex;
+
+  gap: 22px;
+
+}
+
+
+.control {
+
+  width: 54px;
+  height: 54px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.25
+    );
+
+  backdrop-filter:
+    blur(15px);
+
+  -webkit-backdrop-filter:
+    blur(15px);
+
+  color: white;
+
+  font-size: 20px;
+
+}
+
+
+/* =====================================
+   START SCREEN
+===================================== */
+
+#intro {
+
+  position: fixed;
+
+  inset: 0;
+
+  z-index: 20;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  background:
+    rgba(0,0,0,0.65);
+
+  backdrop-filter:
+    blur(20px);
+
+  -webkit-backdrop-filter:
+    blur(20px);
+
+  color: white;
+
+  transition:
+    opacity 0.7s ease;
+
+}
+
+
+#intro.hidden {
+
+  opacity: 0;
+
+  pointer-events: none;
+
+}
+
+
+#intro h1 {
+
+  margin: 0;
+
+  font-size: 30px;
+
+  font-weight: 500;
+
+}
+
+
+#intro p {
+
+  width: 280px;
+
+  margin: 12px 0 25px;
+
+  color:
+    rgba(255,255,255,0.55);
+
+  font-size: 14px;
+
+  line-height: 1.5;
+
+  text-align: center;
+
+}
+
+
+#start {
+
+  padding:
+    14px 25px;
+
+  border: 0;
+
+  border-radius: 30px;
+
+  background: white;
+
+  color: black;
+
+  font-size: 15px;
+
+  font-weight: 500;
+
+}
+
+
+/* =====================================
+   TILT INDICATOR
+===================================== */
+
+#hint {
+
+  position: fixed;
+
+  z-index: 10;
+
+  bottom:
+    calc(
+      105px +
+      env(safe-area-inset-bottom)
+    );
+
+  left: 50%;
+
+  transform:
+    translateX(-50%);
+
+  color:
+    rgba(255,255,255,0.45);
+
+  font-size: 13px;
+
+  opacity: 0;
+
+  transition:
+    opacity 1s ease;
+
+}
+
+
+#hint.show {
+
+  opacity: 1;
+
+}
+
+</style>
+
 </head>
+
 
 <body>
 
-  <div id="scene">
 
-    <div id="aura"></div>
+<div id="screen">
 
-    <div id="ambient"></div>
 
-    <div id="fluid"></div>
+  <!-- Wallpaper -->
 
+  <div id="wallpaper"></div>
+
+
+  <!-- Blurred continuation -->
+
+  <div
+    class="blur-left"
+    id="blurLeft">
   </div>
 
 
-  <div id="intro">
+  <div
+    class="blur-right"
+    id="blurRight">
+  </div>
 
-    <div id="title">
-      Fluid
+
+  <!-- Screen edge -->
+
+  <div id="edge"></div>
+
+
+  <!-- Clock -->
+
+  <div id="clock">
+
+    <div id="time">
+      9:41
     </div>
 
-    <div id="description">
-      Tilt your phone and move the fluid through space.
+    <div id="date">
+      Wednesday, April 1
     </div>
 
-    <button id="motionButton">
-      Begin Experience
-    </button>
+  </div>
+
+
+  <!-- Bottom controls -->
+
+  <div id="controls">
+
+    <div class="control">
+      🔦
+    </div>
+
+    <div class="control">
+      📷
+    </div>
 
   </div>
 
 
-  <div id="hint">
-    Tilt and move your phone
-  </div>
+</div>
 
 
-  <script>
+<!-- Permission -->
 
-    const fluid =
-      document.getElementById("fluid");
+<div id="intro">
 
-    const aura =
-      document.getElementById("aura");
+  <h1>
+    Spatial Lock Screen
+  </h1>
 
-    const ambient =
-      document.getElementById("ambient");
+  <p>
+    Tilt your phone and watch the
+    wallpaper continue beyond the screen.
+  </p>
 
-    const intro =
-      document.getElementById("intro");
+  <button id="start">
+    Begin Experience
+  </button>
 
-    const button =
-      document.getElementById("motionButton");
-
-    const hint =
-      document.getElementById("hint");
-
-
-    let targetX = 0;
-    let targetY = 0;
-
-    let x = 0;
-    let y = 0;
-
-    let lastX = 0;
-    let lastY = 0;
-
-    let velocityX = 0;
-    let velocityY = 0;
-
-    let time = 0;
+</div>
 
 
-    button.addEventListener(
-      "click",
-      async () => {
+<div id="hint">
+  Tilt left or right
+</div>
 
-        try {
 
-          if (
-            typeof DeviceOrientationEvent !== "undefined" &&
-            typeof DeviceOrientationEvent.requestPermission === "function"
-          ) {
+<script>
 
-            const permission =
-              await DeviceOrientationEvent.requestPermission();
 
-            if (permission !== "granted") {
-              return;
-            }
+const wallpaper =
+  document.getElementById(
+    "wallpaper"
+  );
 
-          }
 
-          startMotion();
+const blurLeft =
+  document.getElementById(
+    "blurLeft"
+  );
 
-          intro.classList.add("hidden");
 
-          setTimeout(() => {
-            hint.classList.add("visible");
-          }, 700);
+const blurRight =
+  document.getElementById(
+    "blurRight"
+  );
 
-          setTimeout(() => {
-            hint.classList.remove("visible");
-          }, 4500);
 
-        } catch (error) {
+const intro =
+  document.getElementById(
+    "intro"
+  );
 
-          console.error(error);
+
+const start =
+  document.getElementById(
+    "start"
+  );
+
+
+const hint =
+  document.getElementById(
+    "hint"
+  );
+
+
+/* =====================================
+   MOTION VALUES
+===================================== */
+
+let targetTilt = 0;
+
+let currentTilt = 0;
+
+
+/* =====================================
+   START
+===================================== */
+
+start.addEventListener(
+  "click",
+  async () => {
+
+    try {
+
+      /*
+        iPhone permission
+      */
+
+      if (
+        typeof DeviceOrientationEvent !==
+        "undefined" &&
+
+        typeof DeviceOrientationEvent
+          .requestPermission ===
+          "function"
+      ) {
+
+        const permission =
+          await DeviceOrientationEvent
+            .requestPermission();
+
+
+        if (
+          permission !== "granted"
+        ) {
+
+          return;
 
         }
 
       }
-    );
 
 
-    function startMotion() {
+      /*
+        Start motion
+      */
 
       window.addEventListener(
         "deviceorientation",
-        (event) => {
-
-          const gamma =
-            event.gamma || 0;
-
-          const beta =
-            event.beta || 45;
+        handleMotion
+      );
 
 
-          /*
-            Horizontal tilt
-          */
+      /*
+        Hide intro
+      */
 
-          const horizontal =
-            Math.max(
-              -1,
-              Math.min(1, gamma / 35)
-            );
+      intro.classList.add(
+        "hidden"
+      );
 
 
-          /*
-            Vertical tilt
-          */
+      /*
+        Show hint
+      */
 
-          const vertical =
-            Math.max(
-              -1,
-              Math.min(1, (beta - 45) / 35)
-            );
+      setTimeout(
+        () => {
+          hint.classList.add(
+            "show"
+          );
+        },
+        600
+      );
 
 
-          targetX =
-            horizontal * 280;
-
-          targetY =
-            vertical * 150;
-
-        }
+      setTimeout(
+        () => {
+          hint.classList.remove(
+            "show"
+          );
+        },
+        4000
       );
 
 
       animate();
 
-    }
 
+    } catch (error) {
 
-    function animate() {
-
-      time += 0.016;
-
-
-      /*
-        Elastic movement
-      */
-
-      x +=
-        (targetX - x) * 0.065;
-
-      y +=
-        (targetY - y) * 0.065;
-
-
-      /*
-        Velocity
-      */
-
-      velocityX =
-        x - lastX;
-
-      velocityY =
-        y - lastY;
-
-      lastX = x;
-      lastY = y;
-
-
-      const speed =
-        Math.sqrt(
-          velocityX * velocityX +
-          velocityY * velocityY
-        );
-
-
-      /*
-        Direction
-      */
-
-      const angle =
-        Math.atan2(
-          velocityY,
-          velocityX
-        ) * 180 / Math.PI;
-
-
-      /*
-        Stretch based on speed
-      */
-
-      const stretch =
-        Math.min(
-          1.7,
-          1 + speed * 0.025
-        );
-
-
-      const squash =
-        Math.max(
-          0.7,
-          1 - speed * 0.012
-        );
-
-
-      /*
-        Organic breathing movement
-      */
-
-      const wobble =
-        Math.sin(time * 2.2) * 1.5;
-
-
-      /*
-        Change blob shape dynamically
-      */
-
-      const shape =
-        50 + wobble;
-
-
-      fluid.style.borderRadius = `
-        ${shape}% ${100 - shape}%
-        ${48 + wobble / 2}% ${52 - wobble / 2}%
-        /
-        ${52 - wobble / 2}% ${48 + wobble / 2}%
-        ${50 + wobble}% ${50 - wobble}%
-      `;
-
-
-      /*
-        Main fluid transformation
-      */
-
-      fluid.style.transform = `
-        translate(
-          calc(-50% + ${x}px),
-          calc(-50% + ${y}px)
-        )
-        rotate(${angle}deg)
-        scaleX(${stretch})
-        scaleY(${squash})
-      `;
-
-
-      /*
-        Aura follows the fluid
-        with extra softness
-      */
-
-      aura.style.transform = `
-        translate(
-          calc(-50% + ${x * 0.75}px),
-          calc(-50% + ${y * 0.75}px)
-        )
-        scale(${1 + speed * 0.008})
-      `;
-
-
-      ambient.style.transform = `
-        translate(
-          calc(-50% + ${x * 0.35}px),
-          calc(-50% + ${y * 0.35}px)
-        )
-      `;
-
-
-      requestAnimationFrame(animate);
+      console.error(error);
 
     }
 
-  </script>
+  }
+);
+
+
+/* =====================================
+   DEVICE TILT
+===================================== */
+
+function handleMotion(
+  event
+) {
+
+  const gamma =
+    event.gamma || 0;
+
+
+  /*
+    Convert:
+
+    -35° → -1
+     0°  →  0
+    +35° → +1
+  */
+
+  targetTilt =
+    Math.max(
+      -1,
+      Math.min(
+        1,
+        gamma / 35
+      )
+    );
+
+}
+
+
+/* =====================================
+   ANIMATION
+===================================== */
+
+function animate() {
+
+
+  /*
+    Smooth movement
+
+    This creates inertia.
+  */
+
+  currentTilt +=
+    (
+      targetTilt -
+      currentTilt
+    ) * 0.07;
+
+
+  /*
+    Convert tilt to pixels
+  */
+
+  const movement =
+    currentTilt * 45;
+
+
+  /*
+    Wallpaper shifts slightly
+    opposite to the phone movement.
+  */
+
+  wallpaper.style.transform = `
+    translate3d(
+      ${-movement}px,
+      0,
+      0
+    )
+    scale(1.03)
+  `;
+
+
+  /*
+    ====================================
+    TILT RIGHT
+    ====================================
+
+    currentTilt > 0
+
+    Blur appears on LEFT.
+  */
+
+  const rightTilt =
+    Math.max(
+      0,
+      currentTilt
+    );
+
+
+  blurLeft.style.opacity =
+    rightTilt * 0.95;
+
+
+  blurLeft.style.transform = `
+    translateX(
+      ${-rightTilt * 35}px
+    )
+    scale(1.15)
+  `;
+
+
+  /*
+    ====================================
+    TILT LEFT
+    ====================================
+
+    currentTilt < 0
+
+    Blur appears on RIGHT.
+  */
+
+  const leftTilt =
+    Math.max(
+      0,
+      -currentTilt
+    );
+
+
+  blurRight.style.opacity =
+    leftTilt * 0.95;
+
+
+  blurRight.style.transform = `
+    translateX(
+      ${leftTilt * 35}px
+    )
+    scale(1.15)
+  `;
+
+
+  requestAnimationFrame(
+    animate
+  );
+
+}
+
+
+/* =====================================
+   REAL CLOCK
+===================================== */
+
+function updateClock() {
+
+  const now =
+    new Date();
+
+
+  let hours =
+    now.getHours();
+
+
+  let minutes =
+    now.getMinutes();
+
+
+  hours =
+    hours
+      .toString()
+      .padStart(2, "0");
+
+
+  minutes =
+    minutes
+      .toString()
+      .padStart(2, "0");
+
+
+  document.getElementById(
+    "time"
+  ).textContent =
+    `${hours}:${minutes}`;
+
+
+  document.getElementById(
+    "date"
+  ).textContent =
+    now.toLocaleDateString(
+      undefined,
+      {
+        weekday: "long",
+        month: "long",
+        day: "numeric"
+      }
+    );
+
+}
+
+
+updateClock();
+
+
+setInterval(
+  updateClock,
+  1000
+);
+
+</script>
+
 
 </body>
 </html>
