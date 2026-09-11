@@ -38,391 +38,150 @@ button:hover{background:rgba(255,255,255,.16)}
 </div>
 <script>
 (() => {
-  'use strict';
+'use strict';
+const stage=document.getElementById('stage');
+const canvas=document.getElementById('glCanvas');
+const fallback=document.getElementById('fallback');
+const motionButton=document.getElementById('motion');
+const zeroButton=document.getElementById('zero');
+const manualButton=document.getElementById('manual');
+const errorBox=document.getElementById('error');
 
-  const stage = document.getElementById('stage');
-  const canvas = document.getElementById('glCanvas');
-  const fallback = document.getElementById('fallback');
-  const motionButton = document.getElementById('motion');
-  const zeroButton = document.getElementById('zero');
-  const manualButton = document.getElementById('manual');
-  const errorBox = document.getElementById('error');
+const params={eyeDistanceMm:320,pointsPerMm:6,blurSpread:0.12,darkening:0.015,maxAngle:52*Math.PI/180,maxBlurPx:18};
+params.eyeDistance=params.eyeDistanceMm*params.pointsPerMm;
+const state={target:0,angle:0,velocity:0,referenceGamma:null,manual:false,dragging:false,lastX:0,lastFrame:performance.now(),manualTarget:0};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function showError(message){errorBox.textContent=message;errorBox.style.display='block';}
 
-  // Adapted from the geometry in DuoLikeAnimation's DuoFold.metal:
-  // - UI is fixed on z=0.
-  // - Eye is fixed on the normal through the screen center.
-  // - Glass rotates around the farther edge.
-  // - Every output pixel is projected from the rotated glass back onto the UI plane.
-  // - Blur radius is proportional to glass/plane separation.
-  // The actual web implementation is a fragment shader so the optical model remains spatial,
-  // instead of applying a CSS transform to the whole bitmap.
+const gl=canvas.getContext('webgl2',{alpha:false,antialias:false,premultipliedAlpha:false,preserveDrawingBuffer:false});
+if(!gl){fallback.style.display='block';showError('WebGL2 is unavailable. Showing the original image instead.');return;}
 
-  const params = {
-    eyeDistanceMm: 320,
-    pointsPerMm: 6,
-    blurSpread: 0.12,
-    darkening: 0.015,
-    maxAngle: 52 * Math.PI / 180,
-    maxBlurPx: 18,
-  };
-  params.eyeDistance = params.eyeDistanceMm * params.pointsPerMm;
+const vertexSource=`#version 300 es
+in vec2 aPosition;
+out vec2 vUv;
+void main(){vUv=aPosition*0.5+0.5;gl_Position=vec4(aPosition,0.0,1.0);}`;
 
-  const state = {
-    target: 0,
-    angle: 0,
-    velocity: 0,
-    referenceGamma: null,
-    manual: false,
-    dragging: false,
-    lastX: 0,
-    lastFrame: performance.now(),
-    manualTarget: 0,
-    motionSeen: false,
-  };
-
-  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-
-  function showError(message) {
-    errorBox.textContent = message;
-    errorBox.style.display = 'block';
+const fragmentSource=`#version 300 es
+precision highp float;
+precision highp int;
+uniform sampler2D uImage;
+uniform vec2 uResolution;
+uniform float uAngle;
+uniform float uEyeDistance;
+uniform float uBlurSpread;
+uniform float uDarkening;
+uniform float uMaxBlur;
+uniform float uDpr;
+in vec2 vUv;
+out vec4 outColor;
+const float PI=3.14159265358979323846;
+const float GOLDEN_ANGLE=2.39996322972865332;
+const int MAX_TAPS=32;
+float hash21(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
+vec4 sampleUI(vec2 point){
+  // The canvas coordinate system is bottom-left, so sample the texture with
+  // the same Y direction. The previous build inverted this image vertically.
+  vec2 uv=vec2(point.x/uResolution.x,point.y/uResolution.y);
+  return texture(uImage,uv);
+}
+void main(){
+  vec2 size=uResolution;
+  vec2 p=vUv*size;
+  float tilt=abs(uAngle);
+  if(tilt<0.00001){outColor=sampleUI(p);return;}
+  bool hingeRight=uAngle>0.0;
+  float hingeX=hingeRight?size.x:0.0;
+  float side=hingeRight?-1.0:1.0;
+  float d=abs(p.x-hingeX);
+  float c=cos(tilt),s=sin(tilt);
+  vec3 glass=vec3(hingeX+side*d*c,p.y,d*s);
+  vec3 eye=vec3(size*0.5,uEyeDistance);
+  float depth=eye.z-glass.z;
+  if(depth<=0.001){outColor=vec4(0.0,0.0,0.0,1.0);return;}
+  float t=eye.z/depth;
+  vec2 hit=eye.xy+(glass.xy-eye.xy)*t;
+  float gap=glass.z;
+  float radius=min(uBlurSpread*gap*uDpr,uMaxBlur);
+  if(any(lessThan(hit,vec2(-radius)))||any(greaterThan(hit,size+vec2(radius)))){outColor=vec4(0.0,0.0,0.0,1.0);return;}
+  float attenuation=max(1.0-uDarkening*radius,0.0);
+  if(radius<0.5){vec4 c0=sampleUI(hit);outColor=vec4(c0.rgb*attenuation,1.0);return;}
+  int taps=clamp(int(radius*2.0),6,MAX_TAPS);
+  float rotation=hash21(gl_FragCoord.xy)*2.0*PI;
+  vec3 sum=vec3(0.0);
+  for(int i=0;i<MAX_TAPS;++i){
+    if(i>=taps)break;
+    float fi=float(i);
+    float r=radius*sqrt((fi+0.5)/float(taps));
+    float a=fi*GOLDEN_ANGLE+rotation;
+    sum+=sampleUI(hit+r*vec2(cos(a),sin(a))).rgb;
   }
+  outColor=vec4((sum/float(taps))*attenuation,1.0);
+}`;
 
-  // ---------- WebGL ----------
-  const gl = canvas.getContext('webgl2', {
-    alpha: false,
-    antialias: false,
-    premultipliedAlpha: false,
-    preserveDrawingBuffer: false,
-  });
+function compileShader(type,source){
+  const shader=gl.createShader(type);gl.shaderSource(shader,source);gl.compileShader(shader);
+  if(!gl.getShaderParameter(shader,gl.COMPILE_STATUS)){const log=gl.getShaderInfoLog(shader)||'Unknown shader error';gl.deleteShader(shader);throw new Error(log);}
+  return shader;
+}
+function createProgram(){
+  const vs=compileShader(gl.VERTEX_SHADER,vertexSource);
+  const fs=compileShader(gl.FRAGMENT_SHADER,fragmentSource);
+  const program=gl.createProgram();gl.attachShader(program,vs);gl.attachShader(program,fs);gl.linkProgram(program);
+  if(!gl.getProgramParameter(program,gl.LINK_STATUS)){const log=gl.getProgramInfoLog(program)||'Unknown link error';gl.deleteProgram(program);throw new Error(log);}
+  gl.deleteShader(vs);gl.deleteShader(fs);return program;
+}
+let program;
+try{program=createProgram();}catch(err){fallback.style.display='block';showError('The GPU shader could not be initialized: '+err.message);return;}
+gl.useProgram(program);
+const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
+const aPosition=gl.getAttribLocation(program,'aPosition');gl.enableVertexAttribArray(aPosition);gl.vertexAttribPointer(aPosition,2,gl.FLOAT,false,0,0);
+const uniforms={image:gl.getUniformLocation(program,'uImage'),resolution:gl.getUniformLocation(program,'uResolution'),angle:gl.getUniformLocation(program,'uAngle'),eyeDistance:gl.getUniformLocation(program,'uEyeDistance'),blurSpread:gl.getUniformLocation(program,'uBlurSpread'),darkening:gl.getUniformLocation(program,'uDarkening'),maxBlur:gl.getUniformLocation(program,'uMaxBlur'),dpr:gl.getUniformLocation(program,'uDpr')};
+const texture=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,texture);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+function uploadImage(image){gl.bindTexture(gl.TEXTURE_2D,texture);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,image);}
+if(fallback.complete&&fallback.naturalWidth)uploadImage(fallback);else fallback.addEventListener('load',()=>uploadImage(fallback),{once:true});
 
-  if (!gl) {
-    fallback.style.display = 'block';
-    showError('WebGL2 is unavailable in this browser. Showing the original image instead.');
-    return;
-  }
+function resize(){
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  const w=Math.max(1,Math.floor(canvas.clientWidth*dpr)),h=Math.max(1,Math.floor(canvas.clientHeight*dpr));
+  if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;gl.viewport(0,0,w,h);}
+  gl.useProgram(program);gl.uniform2f(uniforms.resolution,canvas.clientWidth,canvas.clientHeight);gl.uniform1f(uniforms.dpr,dpr);
+}
+function render(){
+  resize();gl.useProgram(program);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,texture);gl.uniform1i(uniforms.image,0);gl.uniform1f(uniforms.angle,state.angle);gl.uniform1f(uniforms.eyeDistance,params.eyeDistance);gl.uniform1f(uniforms.blurSpread,params.blurSpread);gl.uniform1f(uniforms.darkening,params.darkening);gl.uniform1f(uniforms.maxBlur,params.maxBlurPx);gl.drawArrays(gl.TRIANGLES,0,6);
+}
 
-  const vertexSource = `#version 300 es
-  in vec2 aPosition;
-  out vec2 vUv;
-  void main(){
-    vUv = aPosition * 0.5 + 0.5;
-    gl_Position = vec4(aPosition, 0.0, 1.0);
-  }`;
+function normalizeDelta(v){let d=v;while(d>180)d-=360;while(d<-180)d+=360;return d;}
+function setTargetFromDegrees(degrees){state.target=clamp(degrees,-52,52)*Math.PI/180;if(Math.abs(degrees)>0.4)stage.classList.add('ready');}
+function onOrientation(event){if(state.manual||typeof event.gamma!=='number')return;if(state.referenceGamma===null)state.referenceGamma=event.gamma;setTargetFromDegrees(normalizeDelta(event.gamma-state.referenceGamma));}
+window.addEventListener('deviceorientation',onOrientation,{passive:true});
+async function enableMotion(){
+  try{
+    if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){const result=await DeviceOrientationEvent.requestPermission();if(result!=='granted')throw new Error('Motion permission was not granted.');}
+    state.referenceGamma=null;state.manual=false;motionButton.textContent='Motion enabled';manualButton.textContent='Manual: off';stage.classList.add('ready');
+  }catch(err){motionButton.textContent='Use drag';showError(err.message||'Motion permission was unavailable. Drag with the pointer instead.');}
+}
+motionButton.addEventListener('click',enableMotion);
+zeroButton.addEventListener('click',()=>{state.referenceGamma=null;state.target=0;state.angle=0;state.velocity=0;state.manualTarget=0;stage.classList.add('ready');});
+manualButton.addEventListener('click',()=>{state.manual=!state.manual;manualButton.textContent='Manual: '+(state.manual?'on':'off');if(!state.manual)state.referenceGamma=null;});
 
-  const fragmentSource = `#version 300 es
-  precision highp float;
-  precision highp int;
+function pointerDown(x){state.dragging=true;state.lastX=x;state.manual=true;manualButton.textContent='Manual: on';stage.classList.add('ready');}
+function pointerMove(x){if(!state.dragging)return;const dx=x-state.lastX;state.lastX=x;state.manualTarget=clamp(state.manualTarget+dx*0.35,-52,52);setTargetFromDegrees(state.manualTarget);}
+function pointerUp(){state.dragging=false;}
+canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture?.(e.pointerId);pointerDown(e.clientX);});
+canvas.addEventListener('pointermove',e=>pointerMove(e.clientX));
+canvas.addEventListener('pointerup',pointerUp);canvas.addEventListener('pointercancel',pointerUp);canvas.addEventListener('pointerleave',pointerUp);
 
-  uniform sampler2D uImage;
-  uniform vec2 uResolution;
-  uniform float uAngle;
-  uniform float uEyeDistance;
-  uniform float uBlurSpread;
-  uniform float uDarkening;
-  uniform float uMaxBlur;
-  uniform float uDpr;
-
-  in vec2 vUv;
-  out vec4 outColor;
-
-  const float PI = 3.14159265358979323846;
-  const float GOLDEN_ANGLE = 2.39996322972865332;
-  const int MAX_TAPS = 32;
-
-  float hash21(vec2 p){
-    return fract(sin(dot(p, vec2(12.9898,78.233))) * 43758.5453);
-  }
-
-  vec4 sampleUI(vec2 point){
-    // UI coordinates are top-left origin. WebGL texture coordinates are bottom-left.
-    vec2 uv = vec2(point.x / uResolution.x, 1.0 - point.y / uResolution.y);
-    return texture(uImage, uv);
-  }
-
-  void main(){
-    vec2 size = uResolution;
-    vec2 p = vUv * size;
-    float tilt = abs(uAngle);
-
-    if (tilt < 0.00001) {
-      outColor = sampleUI(p);
-      return;
-    }
-
-    bool hingeRight = uAngle > 0.0;
-    float hingeX = hingeRight ? size.x : 0.0;
-    float side = hingeRight ? -1.0 : 1.0;
-    float d = abs(p.x - hingeX);
-    float c = cos(tilt);
-    float s = sin(tilt);
-
-    // Coordinates in the same frame as the reference shader.
-    vec3 glass = vec3(hingeX + side * d * c, p.y, d * s);
-    vec3 eye = vec3(size * 0.5, uEyeDistance);
-
-    float depth = eye.z - glass.z;
-    if (depth <= 0.001) {
-      outColor = vec4(0.0,0.0,0.0,1.0);
-      return;
-    }
-
-    float t = eye.z / depth;
-    vec2 hit = eye.xy + (glass.xy - eye.xy) * t;
-
-    float gap = glass.z;
-    float radius = min(uBlurSpread * gap * uDpr, uMaxBlur);
-
-    // Slight tolerance lets the edge breathe rather than snapping out.
-    if (any(lessThan(hit, vec2(-radius))) || any(greaterThan(hit, size + vec2(radius)))) {
-      outColor = vec4(0.0,0.0,0.0,1.0);
-      return;
-    }
-
-    float attenuation = max(1.0 - uDarkening * radius, 0.0);
-
-    if (radius < 0.5) {
-      vec4 c0 = sampleUI(hit);
-      outColor = vec4(c0.rgb * attenuation, 1.0);
-      return;
-    }
-
-    // Vogel disk sampling with per-pixel rotation, mirroring DuoFold's frosted-glass kernel.
-    int taps = clamp(int(radius * 2.0), 6, MAX_TAPS);
-    float rotation = hash21(gl_FragCoord.xy) * 2.0 * PI;
-    vec3 sum = vec3(0.0);
-    for (int i = 0; i < MAX_TAPS; ++i) {
-      if (i >= taps) break;
-      float fi = float(i);
-      float r = radius * sqrt((fi + 0.5) / float(taps));
-      float a = fi * GOLDEN_ANGLE + rotation;
-      vec2 offset = r * vec2(cos(a), sin(a));
-      sum += sampleUI(hit + offset).rgb;
-    }
-
-    vec3 color = sum / float(taps);
-    outColor = vec4(color * attenuation, 1.0);
-  }`;
-
-  function compileShader(type, source) {
-    const shader = gl.createShader(type);
-    gl.shaderSource(shader, source);
-    gl.compileShader(shader);
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      const log = gl.getShaderInfoLog(shader) || 'Unknown shader error';
-      gl.deleteShader(shader);
-      throw new Error(log);
-    }
-    return shader;
-  }
-
-  function createProgram() {
-    const vs = compileShader(gl.VERTEX_SHADER, vertexSource);
-    const fs = compileShader(gl.FRAGMENT_SHADER, fragmentSource);
-    const program = gl.createProgram();
-    gl.attachShader(program, vs);
-    gl.attachShader(program, fs);
-    gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      const log = gl.getProgramInfoLog(program) || 'Unknown link error';
-      gl.deleteProgram(program);
-      throw new Error(log);
-    }
-    gl.deleteShader(vs);
-    gl.deleteShader(fs);
-    return program;
-  }
-
-  let program;
-  try {
-    program = createProgram();
-  } catch (err) {
-    fallback.style.display = 'block';
-    showError('The GPU shader could not be initialized: ' + err.message);
-    return;
-  }
-
-  gl.useProgram(program);
-
-  const buffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-    -1,-1, 1,-1, -1,1,
-    -1,1, 1,-1, 1,1,
-  ]), gl.STATIC_DRAW);
-
-  const aPosition = gl.getAttribLocation(program, 'aPosition');
-  gl.enableVertexAttribArray(aPosition);
-  gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
-
-  const uniforms = {
-    image: gl.getUniformLocation(program, 'uImage'),
-    resolution: gl.getUniformLocation(program, 'uResolution'),
-    angle: gl.getUniformLocation(program, 'uAngle'),
-    eyeDistance: gl.getUniformLocation(program, 'uEyeDistance'),
-    blurSpread: gl.getUniformLocation(program, 'uBlurSpread'),
-    darkening: gl.getUniformLocation(program, 'uDarkening'),
-    maxBlur: gl.getUniformLocation(program, 'uMaxBlur'),
-    dpr: gl.getUniformLocation(program, 'uDpr'),
-  };
-
-  const texture = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-  function uploadImage(image) {
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-  }
-
-  if (fallback.complete && fallback.naturalWidth) uploadImage(fallback);
-  else fallback.addEventListener('load', () => uploadImage(fallback), {once:true});
-
-  function resize() {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const w = Math.max(1, Math.floor(canvas.clientWidth * dpr));
-    const h = Math.max(1, Math.floor(canvas.clientHeight * dpr));
-    if (canvas.width !== w || canvas.height !== h) {
-      canvas.width = w;
-      canvas.height = h;
-      gl.viewport(0, 0, w, h);
-    }
-    gl.useProgram(program);
-    // Geometry uses CSS pixel coordinates, matching the reference's point-based frame.
-    gl.uniform2f(uniforms.resolution, canvas.clientWidth, canvas.clientHeight);
-    gl.uniform1f(uniforms.dpr, dpr);
-  }
-
-  function render() {
-    resize();
-    gl.useProgram(program);
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.uniform1i(uniforms.image, 0);
-    gl.uniform1f(uniforms.angle, state.angle);
-    gl.uniform1f(uniforms.eyeDistance, params.eyeDistance);
-    gl.uniform1f(uniforms.blurSpread, params.blurSpread);
-    gl.uniform1f(uniforms.darkening, params.darkening);
-    gl.uniform1f(uniforms.maxBlur, params.maxBlurPx);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
-  }
-
-  // ---------- Motion model ----------
-  function normalizeDelta(v) {
-    let d = v;
-    while (d > 180) d -= 360;
-    while (d < -180) d += 360;
-    return d;
-  }
-
-  function setTargetFromDegrees(degrees) {
-    const r = clamp(degrees, -52, 52) * Math.PI / 180;
-    state.target = r;
-    if (Math.abs(degrees) > 0.4) stage.classList.add('ready');
-  }
-
-  function onOrientation(event) {
-    if (state.manual) return;
-    if (typeof event.gamma !== 'number') return;
-    const raw = event.gamma;
-    if (state.referenceGamma === null) state.referenceGamma = raw;
-    const delta = normalizeDelta(raw - state.referenceGamma);
-    setTargetFromDegrees(delta);
-    state.motionSeen = true;
-  }
-
-  window.addEventListener('deviceorientation', onOrientation, {passive:true});
-
-  async function enableMotion() {
-    try {
-      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        const result = await DeviceOrientationEvent.requestPermission();
-        if (result !== 'granted') throw new Error('Motion permission was not granted.');
-      }
-      state.referenceGamma = null;
-      state.manual = false;
-      motionButton.textContent = 'Motion enabled';
-      manualButton.textContent = 'Manual: off';
-      stage.classList.add('ready');
-    } catch (err) {
-      motionButton.textContent = 'Use drag';
-      showError(err.message || 'Motion permission was unavailable. Drag with the pointer instead.');
-    }
-  }
-
-  motionButton.addEventListener('click', enableMotion);
-
-  zeroButton.addEventListener('click', () => {
-    state.referenceGamma = null;
-    state.target = 0;
-    state.angle = 0;
-    state.velocity = 0;
-    state.manualTarget = 0;
-    stage.classList.add('ready');
-  });
-
-  manualButton.addEventListener('click', () => {
-    state.manual = !state.manual;
-    manualButton.textContent = 'Manual: ' + (state.manual ? 'on' : 'off');
-    if (state.manual) {
-      state.manualTarget = state.angle;
-    } else {
-      state.referenceGamma = null;
-    }
-  });
-
-  // ---------- Pointer fallback ----------
-  stage.addEventListener('pointerdown', (event) => {
-    if (event.target.closest('#controls')) return;
-    state.dragging = true;
-    state.lastX = event.clientX;
-    stage.setPointerCapture?.(event.pointerId);
-  });
-
-  stage.addEventListener('pointermove', (event) => {
-    if (!state.dragging) return;
-    const dx = event.clientX - state.lastX;
-    state.lastX = event.clientX;
-    state.manualTarget = clamp(state.manualTarget + dx * 0.55, -52, 52);
-    if (state.manual) setTargetFromDegrees(state.manualTarget);
-    else setTargetFromDegrees((state.target * 180 / Math.PI) + dx * 0.55);
-    stage.classList.add('ready');
-  });
-
-  function endPointer() {
-    state.dragging = false;
-  }
-  stage.addEventListener('pointerup', endPointer);
-  stage.addEventListener('pointercancel', endPointer);
-  stage.addEventListener('pointerleave', endPointer);
-
-  // ---------- Animation loop ----------
-  function tick(now) {
-    const dt = Math.min(32, now - state.lastFrame) / 16.6667;
-    state.lastFrame = now;
-
-    // Spring + damping, close to the low-latency feel of the reference model.
-    const spring = 0.20;
-    const damping = Math.pow(0.78, dt);
-    state.velocity += (state.target - state.angle) * spring * dt;
-    state.velocity *= damping;
-    state.angle += state.velocity * dt;
-
-    if (Math.abs(state.target - state.angle) < 0.0002 && Math.abs(state.velocity) < 0.0002) {
-      state.angle = state.target;
-      state.velocity = 0;
-    }
-
-    render();
-    requestAnimationFrame(tick);
-  }
-
-  window.addEventListener('resize', resize, {passive:true});
-  resize();
-  requestAnimationFrame(tick);
+function tick(now){
+  const dt=Math.min(0.033,Math.max(0.001,(now-state.lastFrame)/1000));state.lastFrame=now;
+  if(!state.dragging&&!state.manualTarget){}
+  const stiffness=22,damping=8;
+  const acceleration=(state.target-state.angle)*stiffness-state.velocity*damping;
+  state.velocity+=acceleration*dt;state.angle+=state.velocity*dt;
+  if(Math.abs(state.target-state.angle)<0.00005&&Math.abs(state.velocity)<0.00005){state.angle=state.target;state.velocity=0;}
+  render();requestAnimationFrame(tick);
+}
+window.addEventListener('resize',resize,{passive:true});
+resize();requestAnimationFrame(tick);
 })();
 </script>
 </body>
