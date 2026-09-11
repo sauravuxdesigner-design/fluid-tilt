@@ -1,1 +1,45 @@
-
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Fluid Tilt — Duo Effect</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#000;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif}body{display:grid;place-items:center;touch-action:none}#stage{position:relative;width:100vw;height:100dvh;overflow:hidden;background:#000;perspective:1200px}#art{position:absolute;inset:0;width:100%;height:100%;display:block;transform-origin:center center;will-change:transform,filter}#base{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center}#tilt{position:absolute;inset:-10%;width:120%;height:120%;object-fit:cover;object-position:center;opacity:0;will-change:transform,filter,opacity;pointer-events:none}#glass{position:absolute;inset:0;pointer-events:none}.vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 45%,rgba(0,0,0,.18) 100%);mix-blend-mode:multiply}#controls{position:absolute;left:50%;bottom:max(22px,env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:10px;padding:9px 11px;border:1px solid rgba(255,255,255,.13);border-radius:999px;background:rgba(18,18,20,.55);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);opacity:0;transition:opacity .25s}#stage:hover #controls,#controls:focus-within{opacity:1}button{border:0;color:#fff;background:rgba(255,255,255,.09);border-radius:999px;padding:9px 13px;font:600 12px/1 -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;cursor:pointer}button:hover{background:rgba(255,255,255,.15)}#status{position:absolute;top:max(18px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);padding:7px 11px;border:1px solid rgba(255,255,255,.1);border-radius:999px;background:rgba(0,0,0,.3);color:rgba(255,255,255,.72);font-size:11px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);pointer-events:none;transition:opacity .35s}#stage.ready #status{opacity:0}
+</style>
+</head>
+<body>
+<div id="stage">
+<div id="art"><img id="base" src="wallpaper.jpg" alt=""><img id="tilt" src="wallpaper.jpg" alt=""><div id="glass"></div></div>
+<div class="vignette"></div><div id="status">Move your device or drag to tilt</div>
+<div id="controls"><button id="motion">Enable motion</button><button id="zero">Recalibrate</button></div>
+</div>
+<script>
+(()=>{
+const stage=document.getElementById('stage'),art=document.getElementById('art'),tiltImg=document.getElementById('tilt'),motionBtn=document.getElementById('motion'),zeroBtn=document.getElementById('zero');
+const state={target:0,angle:0,velocity:0,zero:null,dragging:false,lastX:0,lastT:performance.now()};
+const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
+const sign=v=>v<0?-1:1;
+function apply(angle){
+ const a=clamp(angle,-38,38),n=Math.abs(a)/38;
+ const lift=Math.sin(Math.abs(a)*Math.PI/180)*100*sign(a);
+ const sx=1+n*.018,sy=1+n*.032,blur=Math.pow(n,1.7)*8,dim=.1+Math.pow(n,1.7)*.34;
+ art.style.transform=`translate3d(${(lift*.22).toFixed(2)}px,0,0) rotateY(${a.toFixed(3)}deg) rotateZ(${(a*-.045).toFixed(3)}deg) scale3d(${sx.toFixed(5)},${sy.toFixed(5)},1)`;
+ tiltImg.style.opacity=String(.16+n*.55);
+ tiltImg.style.filter=`blur(${blur.toFixed(2)}px) brightness(${(1-dim).toFixed(3)})`;
+ tiltImg.style.transform=`translate3d(${(-a*1.05).toFixed(2)}px,0,0) scale(${(1+n*.028).toFixed(4)})`;
+ stage.style.background=`rgb(${Math.round(dim*5)},${Math.round(dim*5)},${Math.round(dim*7)})`;
+}
+function frame(t){const dt=Math.min(34,t-state.lastT)/16.67;state.lastT=t;state.velocity+=(state.target-state.angle)*.16*dt;state.velocity*=Math.pow(.78,dt);state.angle+=state.velocity*dt;if(Math.abs(state.target-state.angle)<.002&&Math.abs(state.velocity)<.002)state.angle=state.target;apply(state.angle);requestAnimationFrame(frame)}
+function readOrientation(ev){let raw=typeof ev.gamma==='number'?ev.gamma:0;if(state.zero===null)state.zero=raw;let d=raw-state.zero;if(d>180)d-=360;if(d<-180)d+=360;state.target=clamp(d,-38,38);if(Math.abs(d)>.4)stage.classList.add('ready')}
+function start(e){state.dragging=true;state.lastX=e.clientX;state.target=state.angle}
+function move(e){if(!state.dragging)return;const dx=e.clientX-state.lastX;state.lastX=e.clientX;state.target=clamp(state.target+dx*.18,-38,38);stage.classList.add('ready')}
+function end(){state.dragging=false}
+stage.addEventListener('pointerdown',start);window.addEventListener('pointermove',move,{passive:true});window.addEventListener('pointerup',end,{passive:true});window.addEventListener('pointercancel',end,{passive:true});window.addEventListener('deviceorientation',readOrientation,{passive:true});
+async function enableMotion(){try{if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){const r=await DeviceOrientationEvent.requestPermission();if(r!=='granted')throw Error('denied')}state.zero=null;motionBtn.textContent='Motion enabled';stage.classList.add('ready')}catch(e){motionBtn.textContent='Use drag'}}
+motionBtn.addEventListener('click',enableMotion);zeroBtn.addEventListener('click',()=>{state.zero=null;state.angle=state.target=state.velocity=0;stage.classList.add('ready')});
+if(typeof DeviceOrientationEvent==='undefined')motionBtn.hidden=true;apply(0);requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
