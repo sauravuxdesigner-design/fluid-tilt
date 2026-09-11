@@ -5,184 +5,33 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Fluid Tilt — DuoLikeAnimation Port</title>
 <style>
-:root{color-scheme:dark}
-*{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif}
-body{touch-action:none;display:grid;place-items:center}
-#stage{position:relative;width:100vw;height:100dvh;overflow:hidden;background:#000}
-#glCanvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-#fallback{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
-#ui{position:absolute;inset:0;pointer-events:none}
-#controls{position:absolute;left:50%;bottom:max(22px,env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:8px;padding:8px;border:1px solid rgba(255,255,255,.13);border-radius:999px;background:rgba(18,18,20,.55);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);pointer-events:auto;opacity:0;transition:opacity .2s}
-#stage:hover #controls,#controls:focus-within{opacity:1}
-button{border:0;color:#fff;background:rgba(255,255,255,.1);border-radius:999px;padding:9px 13px;font:600 12px/1 -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;cursor:pointer}
-button:hover{background:rgba(255,255,255,.16)}
-#status{position:absolute;top:max(18px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);padding:7px 11px;border:1px solid rgba(255,255,255,.1);border-radius:999px;background:rgba(0,0,0,.3);color:rgba(255,255,255,.74);font-size:11px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);transition:opacity .35s;white-space:nowrap}
-#stage.ready #status{opacity:0}
-#error{position:absolute;inset:auto 16px 76px;max-width:720px;margin:auto;padding:12px 14px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(0,0,0,.58);color:rgba(255,255,255,.84);font-size:12px;line-height:1.45;display:none}
+:root{color-scheme:dark}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif}body{touch-action:none;display:grid;place-items:center}#stage{position:relative;width:100vw;height:100dvh;overflow:hidden;background:#000}#glCanvas{position:absolute;inset:0;width:100%;height:100%;display:block}#fallback{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}#ui{position:absolute;inset:0;pointer-events:none}#controls{position:absolute;left:50%;bottom:max(22px,env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:8px;padding:8px;border:1px solid rgba(255,255,255,.13);border-radius:999px;background:rgba(18,18,20,.55);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);pointer-events:auto;opacity:0;transition:opacity .2s}#stage:hover #controls,#controls:focus-within{opacity:1}button{border:0;color:#fff;background:rgba(255,255,255,.1);border-radius:999px;padding:9px 13px;font:600 12px/1 -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;cursor:pointer}button:hover{background:rgba(255,255,255,.16)}#status{position:absolute;top:max(18px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);padding:7px 11px;border:1px solid rgba(255,255,255,.1);border-radius:999px;background:rgba(0,0,0,.3);color:rgba(255,255,255,.74);font-size:11px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);transition:opacity .35s;white-space:nowrap}#stage.ready #status{opacity:0}#error{position:absolute;inset:auto 16px 76px;max-width:720px;margin:auto;padding:12px 14px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(0,0,0,.58);color:rgba(255,255,255,.84);font-size:12px;line-height:1.45;display:none}
 </style>
 </head>
-<body>
-<div id="stage">
-  <canvas id="glCanvas"></canvas>
-  <img id="fallback" src="lockscreen.png" alt="">
-  <div id="ui">
-    <div id="status">Move your device or drag horizontally to tilt</div>
-    <div id="controls">
-      <button id="motion">Enable motion</button>
-      <button id="zero">Recalibrate</button>
-      <button id="manual">Manual: off</button>
-    </div>
-    <div id="error"></div>
-  </div>
-</div>
+<body><div id="stage"><canvas id="glCanvas"></canvas><img id="fallback" src="lockscreen.png" alt=""><div id="ui"><div id="status">Move your device or drag horizontally to tilt</div><div id="controls"><button id="motion">Enable motion</button><button id="zero">Recalibrate</button><button id="manual">Manual: off</button></div><div id="error"></div></div></div>
 <script>
-(() => {
-'use strict';
-const stage=document.getElementById('stage');
-const canvas=document.getElementById('glCanvas');
-const fallback=document.getElementById('fallback');
-const motionButton=document.getElementById('motion');
-const zeroButton=document.getElementById('zero');
-const manualButton=document.getElementById('manual');
-const errorBox=document.getElementById('error');
-
-const params={eyeDistanceMm:320,pointsPerMm:6,blurSpread:0.12,darkening:0.015,maxAngle:52*Math.PI/180,maxBlurPx:18};
-params.eyeDistance=params.eyeDistanceMm*params.pointsPerMm;
+(()=>{'use strict';
+const stage=document.getElementById('stage'),canvas=document.getElementById('glCanvas'),fallback=document.getElementById('fallback'),motionButton=document.getElementById('motion'),zeroButton=document.getElementById('zero'),manualButton=document.getElementById('manual'),errorBox=document.getElementById('error');
+const params={eyeDistanceMm:320,pointsPerMm:6,blurSpread:.12,darkening:.015,maxAngle:52*Math.PI/180,maxBlurPx:18};params.eyeDistance=params.eyeDistanceMm*params.pointsPerMm;
 const state={target:0,angle:0,velocity:0,referenceGamma:null,manual:false,dragging:false,lastX:0,lastFrame:performance.now(),manualTarget:0};
-const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-function showError(message){errorBox.textContent=message;errorBox.style.display='block';}
-
-const gl=canvas.getContext('webgl2',{alpha:false,antialias:false,premultipliedAlpha:false,preserveDrawingBuffer:false});
-if(!gl){fallback.style.display='block';showError('WebGL2 is unavailable. Showing the original image instead.');return;}
-
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));function showError(m){errorBox.textContent=m;errorBox.style.display='block'}
+const gl=canvas.getContext('webgl2',{alpha:false,antialias:false,premultipliedAlpha:false,preserveDrawingBuffer:false});if(!gl){fallback.style.display='block';showError('WebGL2 is unavailable. Showing the original image instead.');return}
 const vertexSource=`#version 300 es
-in vec2 aPosition;
-out vec2 vUv;
-void main(){vUv=aPosition*0.5+0.5;gl_Position=vec4(aPosition,0.0,1.0);}`;
-
+in vec2 aPosition;out vec2 vUv;void main(){vUv=aPosition*.5+.5;gl_Position=vec4(aPosition,0.,1.);}`;
 const fragmentSource=`#version 300 es
-precision highp float;
-precision highp int;
-uniform sampler2D uImage;
-uniform vec2 uResolution;
-uniform float uAngle;
-uniform float uEyeDistance;
-uniform float uBlurSpread;
-uniform float uDarkening;
-uniform float uMaxBlur;
-uniform float uDpr;
-in vec2 vUv;
-out vec4 outColor;
-const float PI=3.14159265358979323846;
-const float GOLDEN_ANGLE=2.39996322972865332;
-const int MAX_TAPS=32;
-float hash21(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
-vec4 sampleUI(vec2 point){
-  // The canvas coordinate system is bottom-left, so sample the texture with
-  // the same Y direction. The previous build inverted this image vertically.
-  vec2 uv=vec2(point.x/uResolution.x,point.y/uResolution.y);
-  return texture(uImage,uv);
-}
-void main(){
-  vec2 size=uResolution;
-  vec2 p=vUv*size;
-  float tilt=abs(uAngle);
-  if(tilt<0.00001){outColor=sampleUI(p);return;}
-  bool hingeRight=uAngle>0.0;
-  float hingeX=hingeRight?size.x:0.0;
-  float side=hingeRight?-1.0:1.0;
-  float d=abs(p.x-hingeX);
-  float c=cos(tilt),s=sin(tilt);
-  vec3 glass=vec3(hingeX+side*d*c,p.y,d*s);
-  vec3 eye=vec3(size*0.5,uEyeDistance);
-  float depth=eye.z-glass.z;
-  if(depth<=0.001){outColor=vec4(0.0,0.0,0.0,1.0);return;}
-  float t=eye.z/depth;
-  vec2 hit=eye.xy+(glass.xy-eye.xy)*t;
-  float gap=glass.z;
-  float radius=min(uBlurSpread*gap*uDpr,uMaxBlur);
-  if(any(lessThan(hit,vec2(-radius)))||any(greaterThan(hit,size+vec2(radius)))){outColor=vec4(0.0,0.0,0.0,1.0);return;}
-  float attenuation=max(1.0-uDarkening*radius,0.0);
-  if(radius<0.5){vec4 c0=sampleUI(hit);outColor=vec4(c0.rgb*attenuation,1.0);return;}
-  int taps=clamp(int(radius*2.0),6,MAX_TAPS);
-  float rotation=hash21(gl_FragCoord.xy)*2.0*PI;
-  vec3 sum=vec3(0.0);
-  for(int i=0;i<MAX_TAPS;++i){
-    if(i>=taps)break;
-    float fi=float(i);
-    float r=radius*sqrt((fi+0.5)/float(taps));
-    float a=fi*GOLDEN_ANGLE+rotation;
-    sum+=sampleUI(hit+r*vec2(cos(a),sin(a))).rgb;
-  }
-  outColor=vec4((sum/float(taps))*attenuation,1.0);
-}`;
-
-function compileShader(type,source){
-  const shader=gl.createShader(type);gl.shaderSource(shader,source);gl.compileShader(shader);
-  if(!gl.getShaderParameter(shader,gl.COMPILE_STATUS)){const log=gl.getShaderInfoLog(shader)||'Unknown shader error';gl.deleteShader(shader);throw new Error(log);}
-  return shader;
-}
-function createProgram(){
-  const vs=compileShader(gl.VERTEX_SHADER,vertexSource);
-  const fs=compileShader(gl.FRAGMENT_SHADER,fragmentSource);
-  const program=gl.createProgram();gl.attachShader(program,vs);gl.attachShader(program,fs);gl.linkProgram(program);
-  if(!gl.getProgramParameter(program,gl.LINK_STATUS)){const log=gl.getProgramInfoLog(program)||'Unknown link error';gl.deleteProgram(program);throw new Error(log);}
-  gl.deleteShader(vs);gl.deleteShader(fs);return program;
-}
-let program;
-try{program=createProgram();}catch(err){fallback.style.display='block';showError('The GPU shader could not be initialized: '+err.message);return;}
-gl.useProgram(program);
-const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
-const aPosition=gl.getAttribLocation(program,'aPosition');gl.enableVertexAttribArray(aPosition);gl.vertexAttribPointer(aPosition,2,gl.FLOAT,false,0,0);
+precision highp float;precision highp int;uniform sampler2D uImage;uniform vec2 uResolution;uniform float uAngle;uniform float uEyeDistance;uniform float uBlurSpread;uniform float uDarkening;uniform float uMaxBlur;uniform float uDpr;in vec2 vUv;out vec4 outColor;const float PI=3.14159265358979323846;const float GOLDEN_ANGLE=2.39996322972865332;const int MAX_TAPS=32;float hash21(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}vec4 sampleUI(vec2 point){vec2 uv=vec2(point.x/uResolution.x,1.0-point.y/uResolution.y);return texture(uImage,uv);}void main(){vec2 size=uResolution,p=vUv*size;float tilt=abs(uAngle);if(tilt<.00001){outColor=sampleUI(p);return;}bool hingeRight=uAngle>0.;float hingeX=hingeRight?size.x:0.;float side=hingeRight?-1.:1.;float d=abs(p.x-hingeX),c=cos(tilt),s=sin(tilt);vec3 glass=vec3(hingeX+side*d*c,p.y,d*s),eye=vec3(size*.5,uEyeDistance);float depth=eye.z-glass.z;if(depth<=.001){outColor=vec4(0.,0.,0.,1.);return;}float t=eye.z/depth;vec2 hit=eye.xy+(glass.xy-eye.xy)*t;float gap=glass.z,radius=min(uBlurSpread*gap*uDpr,uMaxBlur);if(any(lessThan(hit,vec2(-radius)))||any(greaterThan(hit,size+vec2(radius)))){outColor=vec4(0.,0.,0.,1.);return;}float attenuation=max(1.-uDarkening*radius,0.);if(radius<.5){vec4 c0=sampleUI(hit);outColor=vec4(c0.rgb*attenuation,1.);return;}int taps=clamp(int(radius*2.),6,MAX_TAPS);float rotation=hash21(gl_FragCoord.xy)*2.*PI;vec3 sum=vec3(0.);for(int i=0;i<MAX_TAPS;++i){if(i>=taps)break;float fi=float(i),r=radius*sqrt((fi+.5)/float(taps)),a=fi*GOLDEN_ANGLE+rotation;sum+=sampleUI(hit+r*vec2(cos(a),sin(a))).rgb;}outColor=vec4((sum/float(taps))*attenuation,1.);}`;
+function compileShader(type,source){const shader=gl.createShader(type);gl.shaderSource(shader,source);gl.compileShader(shader);if(!gl.getShaderParameter(shader,gl.COMPILE_STATUS)){const log=gl.getShaderInfoLog(shader)||'Unknown shader error';gl.deleteShader(shader);throw new Error(log)}return shader}
+function createProgram(){const vs=compileShader(gl.VERTEX_SHADER,vertexSource),fs=compileShader(gl.FRAGMENT_SHADER,fragmentSource),p=gl.createProgram();gl.attachShader(p,vs);gl.attachShader(p,fs);gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS)){const log=gl.getProgramInfoLog(p)||'Unknown link error';gl.deleteProgram(p);throw new Error(log)}gl.deleteShader(vs);gl.deleteShader(fs);return p}
+let program;try{program=createProgram()}catch(err){fallback.style.display='block';showError('The GPU shader could not be initialized: '+err.message);return}gl.useProgram(program);
+const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);const aPosition=gl.getAttribLocation(program,'aPosition');gl.enableVertexAttribArray(aPosition);gl.vertexAttribPointer(aPosition,2,gl.FLOAT,false,0,0);
 const uniforms={image:gl.getUniformLocation(program,'uImage'),resolution:gl.getUniformLocation(program,'uResolution'),angle:gl.getUniformLocation(program,'uAngle'),eyeDistance:gl.getUniformLocation(program,'uEyeDistance'),blurSpread:gl.getUniformLocation(program,'uBlurSpread'),darkening:gl.getUniformLocation(program,'uDarkening'),maxBlur:gl.getUniformLocation(program,'uMaxBlur'),dpr:gl.getUniformLocation(program,'uDpr')};
 const texture=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,texture);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
-function uploadImage(image){gl.bindTexture(gl.TEXTURE_2D,texture);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,image);}
-if(fallback.complete&&fallback.naturalWidth)uploadImage(fallback);else fallback.addEventListener('load',()=>uploadImage(fallback),{once:true});
-
-function resize(){
-  const dpr=Math.min(window.devicePixelRatio||1,2);
-  const w=Math.max(1,Math.floor(canvas.clientWidth*dpr)),h=Math.max(1,Math.floor(canvas.clientHeight*dpr));
-  if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;gl.viewport(0,0,w,h);}
-  gl.useProgram(program);gl.uniform2f(uniforms.resolution,canvas.clientWidth,canvas.clientHeight);gl.uniform1f(uniforms.dpr,dpr);
-}
-function render(){
-  resize();gl.useProgram(program);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,texture);gl.uniform1i(uniforms.image,0);gl.uniform1f(uniforms.angle,state.angle);gl.uniform1f(uniforms.eyeDistance,params.eyeDistance);gl.uniform1f(uniforms.blurSpread,params.blurSpread);gl.uniform1f(uniforms.darkening,params.darkening);gl.uniform1f(uniforms.maxBlur,params.maxBlurPx);gl.drawArrays(gl.TRIANGLES,0,6);
-}
-
-function normalizeDelta(v){let d=v;while(d>180)d-=360;while(d<-180)d+=360;return d;}
-function setTargetFromDegrees(degrees){state.target=clamp(degrees,-52,52)*Math.PI/180;if(Math.abs(degrees)>0.4)stage.classList.add('ready');}
-function onOrientation(event){if(state.manual||typeof event.gamma!=='number')return;if(state.referenceGamma===null)state.referenceGamma=event.gamma;setTargetFromDegrees(normalizeDelta(event.gamma-state.referenceGamma));}
-window.addEventListener('deviceorientation',onOrientation,{passive:true});
-async function enableMotion(){
-  try{
-    if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){const result=await DeviceOrientationEvent.requestPermission();if(result!=='granted')throw new Error('Motion permission was not granted.');}
-    state.referenceGamma=null;state.manual=false;motionButton.textContent='Motion enabled';manualButton.textContent='Manual: off';stage.classList.add('ready');
-  }catch(err){motionButton.textContent='Use drag';showError(err.message||'Motion permission was unavailable. Drag with the pointer instead.');}
-}
-motionButton.addEventListener('click',enableMotion);
-zeroButton.addEventListener('click',()=>{state.referenceGamma=null;state.target=0;state.angle=0;state.velocity=0;state.manualTarget=0;stage.classList.add('ready');});
-manualButton.addEventListener('click',()=>{state.manual=!state.manual;manualButton.textContent='Manual: '+(state.manual?'on':'off');if(!state.manual)state.referenceGamma=null;});
-
-function pointerDown(x){state.dragging=true;state.lastX=x;state.manual=true;manualButton.textContent='Manual: on';stage.classList.add('ready');}
-function pointerMove(x){if(!state.dragging)return;const dx=x-state.lastX;state.lastX=x;state.manualTarget=clamp(state.manualTarget+dx*0.35,-52,52);setTargetFromDegrees(state.manualTarget);}
-function pointerUp(){state.dragging=false;}
-canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture?.(e.pointerId);pointerDown(e.clientX);});
-canvas.addEventListener('pointermove',e=>pointerMove(e.clientX));
-canvas.addEventListener('pointerup',pointerUp);canvas.addEventListener('pointercancel',pointerUp);canvas.addEventListener('pointerleave',pointerUp);
-
-function tick(now){
-  const dt=Math.min(0.033,Math.max(0.001,(now-state.lastFrame)/1000));state.lastFrame=now;
-  if(!state.dragging&&!state.manualTarget){}
-  const stiffness=22,damping=8;
-  const acceleration=(state.target-state.angle)*stiffness-state.velocity*damping;
-  state.velocity+=acceleration*dt;state.angle+=state.velocity*dt;
-  if(Math.abs(state.target-state.angle)<0.00005&&Math.abs(state.velocity)<0.00005){state.angle=state.target;state.velocity=0;}
-  render();requestAnimationFrame(tick);
-}
-window.addEventListener('resize',resize,{passive:true});
-resize();requestAnimationFrame(tick);
+function uploadImage(image){gl.bindTexture(gl.TEXTURE_2D,texture);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,image)}if(fallback.complete&&fallback.naturalWidth)uploadImage(fallback);else fallback.addEventListener('load',()=>uploadImage(fallback),{once:true});
+function resize(){const dpr=Math.min(devicePixelRatio||1,2),w=Math.max(1,Math.floor(canvas.clientWidth*dpr)),h=Math.max(1,Math.floor(canvas.clientHeight*dpr));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;gl.viewport(0,0,w,h)}gl.useProgram(program);gl.uniform2f(uniforms.resolution,canvas.clientWidth,canvas.clientHeight);gl.uniform1f(uniforms.dpr,dpr)}
+function render(){resize();gl.useProgram(program);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,texture);gl.uniform1i(uniforms.image,0);gl.uniform1f(uniforms.angle,state.angle);gl.uniform1f(uniforms.eyeDistance,params.eyeDistance);gl.uniform1f(uniforms.blurSpread,params.blurSpread);gl.uniform1f(uniforms.darkening,params.darkening);gl.uniform1f(uniforms.maxBlur,params.maxBlurPx);gl.drawArrays(gl.TRIANGLES,0,6)}
+function normalizeDelta(v){let d=v;while(d>180)d-=360;while(d<-180)d+=360;return d}function setTargetFromDegrees(degrees){state.target=clamp(degrees,-52,52)*Math.PI/180;if(Math.abs(degrees)>.4)stage.classList.add('ready')}function onOrientation(e){if(state.manual||typeof e.gamma!=='number')return;if(state.referenceGamma===null)state.referenceGamma=e.gamma;setTargetFromDegrees(normalizeDelta(e.gamma-state.referenceGamma))}window.addEventListener('deviceorientation',onOrientation,{passive:true});
+async function enableMotion(){try{if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){const result=await DeviceOrientationEvent.requestPermission();if(result!=='granted')throw new Error('Motion permission was not granted.')}state.referenceGamma=null;state.manual=false;motionButton.textContent='Motion enabled';manualButton.textContent='Manual: off';stage.classList.add('ready')}catch(err){motionButton.textContent='Use drag';showError(err.message||'Motion permission was unavailable. Drag with the pointer instead.')}}motionButton.addEventListener('click',enableMotion);zeroButton.addEventListener('click',()=>{state.referenceGamma=null;state.target=0;state.angle=0;state.velocity=0;state.manualTarget=0;stage.classList.add('ready')});manualButton.addEventListener('click',()=>{state.manual=!state.manual;manualButton.textContent='Manual: '+(state.manual?'on':'off');if(!state.manual)state.referenceGamma=null});
+function pointerDown(x){state.dragging=true;state.lastX=x;state.manual=true;manualButton.textContent='Manual: on';stage.classList.add('ready')}function pointerMove(x){if(!state.dragging)return;const dx=x-state.lastX;state.lastX=x;state.manualTarget=clamp(state.manualTarget+dx*.35,-52,52);setTargetFromDegrees(state.manualTarget)}function pointerUp(){state.dragging=false}canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture?.(e.pointerId);pointerDown(e.clientX)});canvas.addEventListener('pointermove',e=>pointerMove(e.clientX));canvas.addEventListener('pointerup',pointerUp);canvas.addEventListener('pointercancel',pointerUp);canvas.addEventListener('pointerleave',pointerUp);
+function tick(now){const dt=Math.min(.033,Math.max(.001,(now-state.lastFrame)/1000));state.lastFrame=now;const stiffness=22,damping=8,acceleration=(state.target-state.angle)*stiffness-state.velocity*damping;state.velocity+=acceleration*dt;state.angle+=state.velocity*dt;if(Math.abs(state.target-state.angle)<.00005&&Math.abs(state.velocity)<.00005){state.angle=state.target;state.velocity=0}render();requestAnimationFrame(tick)}window.addEventListener('resize',resize,{passive:true});resize();requestAnimationFrame(tick);
 })();
-</script>
-</body>
-</html>
+</script></body></html>
